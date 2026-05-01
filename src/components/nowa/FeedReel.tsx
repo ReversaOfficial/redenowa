@@ -407,6 +407,26 @@ const ReelSlide = memo(function ReelSlide({
         </span>
       </div>
 
+      {/* Banner de post marcado como impróprio (só o autor vê) */}
+      {post.flagged && isMine && (
+        <div className="absolute inset-x-4 top-[calc(max(env(safe-area-inset-top),16px)+36px)] z-10">
+          <div className="flex items-center gap-2 rounded-2xl bg-destructive/90 px-4 py-2.5 backdrop-blur">
+            <ShieldAlert className="h-4 w-4 shrink-0 text-destructive-foreground" strokeWidth={2.5} />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-destructive-foreground">
+                Post marcado como impróprio
+              </p>
+              <p className="mt-0.5 truncate text-[10px] text-destructive-foreground/80">
+                {post.flagged_reason || "Este conteúdo viola as diretrizes da comunidade."}
+              </p>
+              <p className="mt-0.5 text-[10px] text-destructive-foreground/60">
+                Só você pode ver este post.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* coluna de ações à direita */}
       <div className="absolute bottom-32 right-3 z-10 flex flex-col items-center gap-5">
         <button
