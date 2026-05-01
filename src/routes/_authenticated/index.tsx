@@ -26,6 +26,7 @@ const POST_TTL_MS = 24 * 60 * 60 * 1000;
 
 function FeedPage() {
   const { user } = useAuth();
+  const [notifOpen, setNotifOpen] = useState(false);
   const tick = useMinuteTick();
   const qc = useQueryClient();
   const queryKey = ["posts", "feed", user?.id ?? null];
