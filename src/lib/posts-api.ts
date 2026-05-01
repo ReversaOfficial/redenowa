@@ -343,6 +343,10 @@ export async function createPost(args: {
     close_friends_only: args.closeFriendsOnly ?? false,
   }).select("id").single();
   if (error) throw error;
+  // Fire-and-forget mention notifications for caption
+  if (args.caption) {
+    notifyMentions({ text: args.caption, actorId: args.authorId, postId: data.id }).catch(() => {});
+  }
   return data.id;
 }
 
