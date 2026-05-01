@@ -1,14 +1,19 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2, Sparkles, Check } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { Avatar } from "@/components/nowa/PostCard";
+import {
+  ColorPicker,
+  PRESET_BGS,
+  PRESET_RINGS,
+} from "@/components/nowa/ColorPicker";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
-import { normalizeHex, readableTextOn, withAlpha } from "@/lib/color";
+import { readableTextOn, withAlpha } from "@/lib/color";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
@@ -26,27 +31,6 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
 const DEFAULT_BG = "#0F0F12";
 const DEFAULT_RING = "#FF2E63";
 
-const PRESET_BGS = [
-  "#0F0F12",
-  "#1B1F2A",
-  "#2A1B3D",
-  "#0E2A1F",
-  "#3D1B1B",
-  "#F4F1EA",
-  "#FFE9E3",
-  "#E3F0FF",
-];
-
-const PRESET_RINGS = [
-  "#FF2E63",
-  "#FFB100",
-  "#19C37D",
-  "#3B82F6",
-  "#A855F7",
-  "#FF7849",
-  "#000000",
-  "#FFFFFF",
-];
 
 const schema = z.object({
   display_name: z.string().trim().min(2, "Informe seu nome").max(40),
