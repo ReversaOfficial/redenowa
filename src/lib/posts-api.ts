@@ -88,6 +88,26 @@ export async function fetchActivePosts(myId: string | null): Promise<Post[]> {
   return shape((data ?? []) as unknown as RawPost[], myId);
 }
 
+export type PublicProfile = {
+  id: string;
+  handle: string;
+  display_name: string;
+  avatar_url: string | null;
+  bio: string | null;
+};
+
+export async function fetchProfileByHandle(
+  handle: string
+): Promise<PublicProfile | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, handle, display_name, avatar_url, bio")
+    .eq("handle", handle)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function fetchUserPosts(
   userId: string,
   active: boolean
