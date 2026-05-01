@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import { Heart, MessageCircle, Share2, UserPlus, UserCheck, Clock, Loader2, Volume2, VolumeX } from "lucide-react";
@@ -18,14 +18,16 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 
+// Number of slides to keep mounted around the active one (±WINDOW)
+const WINDOW = 2;
+
 export function FeedReel({ posts }: { posts: Post[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const { user } = useAuth();
   const qc = useQueryClient();
 
-  // Realtime: when the current user follows/unfollows anyone, refresh all
-  // cached follow states so feed buttons stay in sync across slides.
+  // Realtime sync
   useEffect(() => {
     if (!user?.id) return;
     const channel = supabase
@@ -33,9 +35,7 @@ export function FeedReel({ posts }: { posts: Post[] }) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${user.id}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["follow-state"] });
-        },
+        () => qc.invalidateQueries({ queryKey: ["follow-state"] }),
       )
       .on(
         "postgres_changes",
@@ -46,12 +46,10 @@ export function FeedReel({ posts }: { posts: Post[] }) {
         },
       )
       .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [user?.id, qc]);
 
-  // Track which slide is centered for active state
+  // Intersection observer for active slide
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -71,27 +69,81 @@ export function FeedReel({ posts }: { posts: Post[] }) {
     return () => obs.disconnect();
   }, [posts.length]);
 
+  // Preload adjacent media (images & video metadata) via <link> hints
+  const preloadUrls = useMemo(() => {
+    const urls: { url: string; isVideo: boolean }[] = [];
+    for (let offset = -WINDOW; offset <= WINDOW; offset++) {
+      if (offset === 0) continue; // active slide handles itself
+      const idx = activeIndex + offset;
+      if (idx >= 0 && idx < posts.length) {
+        urls.push({
+          url: posts[idx].media_url,
+          isVideo: posts[idx].media_type === "video",
+        });
+      }
+    }
+    return urls;
+  }, [activeIndex, posts]);
+
+  // Determine which slides are in the render window
+  const windowStart = Math.max(0, activeIndex - WINDOW);
+  const windowEnd = Math.min(posts.length - 1, activeIndex + WINDOW);
+
   return (
-    <div
-      ref={containerRef}
-      className="h-[100dvh] w-full overflow-y-auto snap-y snap-mandatory bg-black"
-      style={{ scrollSnapType: "y mandatory" }}
-    >
-      {posts.map((post, i) => (
-        <div
-          key={post.id}
-          data-reel-item
-          data-idx={i}
-          className="relative h-[100dvh] w-full snap-start snap-always"
-        >
-          <ReelSlide post={post} active={i === activeIndex} />
-        </div>
+    <>
+      {/* Preload hints for adjacent slides */}
+      {preloadUrls.map(({ url, isVideo }) => (
+        <link
+          key={url}
+          rel="preload"
+          href={url}
+          as={isVideo ? "video" : "image"}
+          // @ts-expect-error fetchpriority is valid HTML
+          fetchpriority="low"
+        />
       ))}
-    </div>
+
+      <div
+        ref={containerRef}
+        className="h-[100dvh] w-full overflow-y-auto snap-y snap-mandatory bg-black"
+        style={{ scrollSnapType: "y mandatory" }}
+      >
+        {posts.map((post, i) => {
+          const inWindow = i >= windowStart && i <= windowEnd;
+          return (
+            <div
+              key={post.id}
+              data-reel-item
+              data-idx={i}
+              className="relative h-[100dvh] w-full snap-start snap-always"
+            >
+              {inWindow ? (
+                <ReelSlide
+                  post={post}
+                  active={i === activeIndex}
+                  nearActive={Math.abs(i - activeIndex) <= 1}
+                />
+              ) : (
+                // Placeholder keeps scroll position correct
+                <div className="h-full w-full bg-black" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
-function ReelSlide({ post, active }: { post: Post; active: boolean }) {
+const ReelSlide = memo(function ReelSlide({
+  post,
+  active,
+  nearActive,
+}: {
+  post: Post;
+  active: boolean;
+  nearActive: boolean;
+}) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [showHeart, setShowHeart] = useState(0);
@@ -110,13 +162,14 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
       el.play().catch(() => {});
     } else {
       el.pause();
-      el.currentTime = 0;
+      // Only reset time if far away
+      if (!nearActive) el.currentTime = 0;
     }
-  }, [active, isVideo]);
+  }, [active, isVideo, nearActive]);
 
   const isMine = user?.id === post.author_id;
 
-  // Comments count (live)
+  // Comments count (live) — only fetch when active
   const { data: commentsCount = 0 } = useQuery({
     queryKey: ["comments-count", post.id],
     queryFn: () => fetchCommentsCount(post.id),
@@ -124,30 +177,21 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
     staleTime: 30_000,
   });
 
-  // Realtime: keep the count in sync with inserts/deletes for this post
+  // Realtime comments count sync
   useEffect(() => {
     if (!active) return;
     const channel = supabase
       .channel(`comments-count:${post.id}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "comments",
-          filter: `post_id=eq.${post.id}`,
-        },
-        () => {
-          qc.invalidateQueries({ queryKey: ["comments-count", post.id] });
-        },
+        { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${post.id}` },
+        () => qc.invalidateQueries({ queryKey: ["comments-count", post.id] }),
       )
       .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [active, post.id, qc]);
 
-  // Like mutation (optimistic across all post queries)
+  // Like mutation (optimistic)
   const likeMutation = useMutation({
     mutationFn: () => toggleLike(post.id, post.liked_by_me),
     onMutate: async () => {
@@ -159,11 +203,7 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
           key,
           data.map((p) =>
             p.id === post.id
-              ? {
-                  ...p,
-                  liked_by_me: !p.liked_by_me,
-                  likes_count: p.likes_count + (p.liked_by_me ? -1 : 1),
-                }
+              ? { ...p, liked_by_me: !p.liked_by_me, likes_count: p.likes_count + (p.liked_by_me ? -1 : 1) }
               : p
           )
         );
@@ -177,12 +217,12 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
     onSettled: () => qc.invalidateQueries({ queryKey: ["posts"] }),
   });
 
-  // Follow state for this slide's author
+  // Follow state — prefetch for near-active slides too
   const followKey = ["follow-state", post.author_id, user?.id ?? null] as const;
   const { data: follow } = useQuery({
     queryKey: followKey,
     queryFn: () => fetchFollowState(post.author_id, user?.id ?? null),
-    enabled: !isMine && active, // só carrega quando o slide entra em foco
+    enabled: !isMine && nearActive,
     staleTime: 60_000,
   });
 
@@ -213,28 +253,23 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
     onError: (e, _v, ctx) => {
       if (ctx?.prev) qc.setQueryData(followKey, ctx.prev);
       toast.error(
-        ctx?.wasFollowing
-          ? "Não foi possível deixar de seguir"
-          : "Não foi possível seguir agora",
+        ctx?.wasFollowing ? "Não foi possível deixar de seguir" : "Não foi possível seguir agora",
         { description: e instanceof Error ? e.message : "Tente novamente em instantes." }
       );
     },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["follow-state", post.author_id] });
-    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["follow-state", post.author_id] }),
   });
 
-  function handleTap() {
+  const handleTap = useCallback(() => {
     const now = Date.now();
     if (now - lastTapRef.current < 280) {
-      // duplo toque = curtir
       if (!post.liked_by_me) likeMutation.mutate();
       setShowHeart((c) => c + 1);
     }
     lastTapRef.current = now;
-  }
+  }, [post.liked_by_me, likeMutation]);
 
-  function handleShare() {
+  const handleShare = useCallback(() => {
     const url = `${window.location.origin}/u/${post.author.handle}`;
     if (navigator.share) {
       navigator.share({ title: `@${post.author.handle} no NOWA`, url }).catch(() => {});
@@ -242,7 +277,7 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
       navigator.clipboard?.writeText(url);
       toast.success("Link copiado");
     }
-  }
+  }, [post.author.handle]);
 
   return (
     <div className="relative h-full w-full" onClick={handleTap}>
@@ -253,7 +288,7 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
           loop
           muted={muted}
           playsInline
-          preload="metadata"
+          preload={nearActive ? "auto" : "metadata"}
           className="absolute inset-0 h-full w-full object-cover"
           draggable={false}
         />
@@ -261,10 +296,13 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
         <img
           src={post.media_url}
           alt={post.caption ?? ""}
+          loading={nearActive ? "eager" : "lazy"}
+          decoding={nearActive ? "sync" : "async"}
           className="absolute inset-0 h-full w-full object-cover"
           draggable={false}
         />
       )}
+
       {/* gradiente para legibilidade */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70" />
 
@@ -297,18 +335,13 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
       <div className="absolute bottom-32 right-3 z-10 flex flex-col items-center gap-5">
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            likeMutation.mutate();
-          }}
+          onClick={(e) => { e.stopPropagation(); likeMutation.mutate(); }}
           className="flex flex-col items-center gap-1"
           aria-label="Curtir"
         >
           <motion.div whileTap={{ scale: 0.85 }}>
             <Heart
-              className={`h-8 w-8 drop-shadow-lg ${
-                post.liked_by_me ? "fill-primary text-primary" : "text-white"
-              }`}
+              className={`h-8 w-8 drop-shadow-lg ${post.liked_by_me ? "fill-primary text-primary" : "text-white"}`}
               strokeWidth={post.liked_by_me ? 0 : 2}
             />
           </motion.div>
@@ -321,10 +354,7 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
           type="button"
           className="flex flex-col items-center gap-1"
           aria-label="Comentar"
-          onClick={(e) => {
-            e.stopPropagation();
-            setCommentsOpen(true);
-          }}
+          onClick={(e) => { e.stopPropagation(); setCommentsOpen(true); }}
         >
           <MessageCircle className="h-8 w-8 text-white drop-shadow-lg" strokeWidth={2} />
           <span className="text-xs font-semibold tabular-nums text-white drop-shadow">
@@ -334,10 +364,7 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
 
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleShare();
-          }}
+          onClick={(e) => { e.stopPropagation(); handleShare(); }}
           className="flex flex-col items-center gap-1"
           aria-label="Compartilhar"
         >
@@ -347,10 +374,7 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
         {isVideo && (
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setMuted((m) => !m);
-            }}
+            onClick={(e) => { e.stopPropagation(); setMuted((m) => !m); }}
             className="flex flex-col items-center gap-1"
             aria-label={muted ? "Ativar som" : "Silenciar"}
           >
@@ -372,28 +396,17 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
             onClick={(e) => e.stopPropagation()}
             className="flex items-center gap-2.5"
           >
-            <Avatar
-              src={post.author.avatar_url}
-              name={post.author.display_name}
-              size={40}
-            />
+            <Avatar src={post.author.avatar_url} name={post.author.display_name} size={40} />
             <div className="leading-tight">
-              <p className="text-sm font-bold text-white drop-shadow">
-                @{post.author.handle}
-              </p>
-              <p className="text-[11px] text-white/80 drop-shadow">
-                {post.author.display_name}
-              </p>
+              <p className="text-sm font-bold text-white drop-shadow">@{post.author.handle}</p>
+              <p className="text-[11px] text-white/80 drop-shadow">{post.author.display_name}</p>
             </div>
           </Link>
 
           {!isMine && (
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                followMutation.mutate();
-              }}
+              onClick={(e) => { e.stopPropagation(); followMutation.mutate(); }}
               disabled={followMutation.isPending || !follow}
               aria-busy={followMutation.isPending}
               className={`nowa-tap ml-auto inline-flex min-w-[88px] items-center justify-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all disabled:opacity-70 ${
@@ -433,4 +446,4 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
       />
     </div>
   );
-}
+});
