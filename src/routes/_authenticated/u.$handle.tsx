@@ -1,14 +1,18 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Grid3x3, Loader2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Grid3x3, Loader2, UserPlus, UserCheck } from "lucide-react";
+import { toast } from "sonner";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { TopBar } from "@/components/nowa/TopBar";
 import { Avatar } from "@/components/nowa/PostCard";
 import {
+  fetchFollowState,
   fetchProfileByHandle,
   fetchUserPosts,
   timeRemaining,
+  toggleFollow,
   useMinuteTick,
+  type FollowState,
 } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
 
@@ -47,7 +51,38 @@ function PublicProfilePage() {
     enabled: !!profile?.id,
   });
 
-  const isMe = user?.id && profile?.id === user.id;
+  const isMe = !!(user?.id && profile?.id === user.id);
+  const qc = useQueryClient();
+
+  const followKey = ["follow-state", profile?.id, user?.id ?? null] as const;
+  const { data: follow } = useQuery({
+    queryKey: followKey,
+    queryFn: () => fetchFollowState(profile!.id, user?.id ?? null),
+    enabled: !!profile?.id,
+  });
+
+  const followMutation = useMutation({
+    mutationFn: () => toggleFollow(profile!.id, !!follow?.is_following),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: followKey });
+      const prev = qc.getQueryData<FollowState>(followKey);
+      if (prev) {
+        qc.setQueryData<FollowState>(followKey, {
+          ...prev,
+          is_following: !prev.is_following,
+          followers: prev.followers + (prev.is_following ? -1 : 1),
+        });
+      }
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(followKey, ctx.prev);
+      toast.error("Não foi possível atualizar");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["follow-state", profile?.id] });
+    },
+  });
 
   return (
     <MobileShell>
@@ -100,13 +135,36 @@ function PublicProfilePage() {
                   @{profile.handle}
                 </p>
               </div>
-              {isMe && (
+              {isMe ? (
                 <Link
-                  to="/profile"
+                  to="/profile/edit"
                   className="rounded-full border border-border px-4 py-1.5 text-xs font-semibold text-foreground"
                 >
                   Editar
                 </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => followMutation.mutate()}
+                  disabled={followMutation.isPending || !follow}
+                  className={`nowa-tap inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
+                    follow?.is_following
+                      ? "border border-border bg-card text-foreground"
+                      : "bg-primary text-primary-foreground"
+                  }`}
+                >
+                  {follow?.is_following ? (
+                    <>
+                      <UserCheck className="h-3.5 w-3.5" strokeWidth={2.5} />
+                      Seguindo
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                      Seguir
+                    </>
+                  )}
+                </button>
               )}
             </div>
 
@@ -120,14 +178,10 @@ function PublicProfilePage() {
               </p>
             )}
 
-            <div className="mt-5 flex items-center gap-2 rounded-2xl bg-card px-4 py-3">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
-              <span className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
-                {active?.length ?? 0} ao vivo agora
-              </span>
+            <div className="mt-5 grid grid-cols-3 gap-2 rounded-2xl bg-card p-4">
+              <Stat label="ao vivo" value={active?.length ?? 0} accent />
+              <Stat label="seguidores" value={follow?.followers ?? 0} />
+              <Stat label="seguindo" value={follow?.following ?? 0} />
             </div>
           </section>
 
@@ -176,3 +230,29 @@ function PublicProfilePage() {
     </MobileShell>
   );
 }
+
+function Stat({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+}) {
+  return (
+    <div className="text-center">
+      <p
+        className={`text-xl font-bold tabular-nums ${
+          accent ? "text-primary" : "text-foreground"
+        }`}
+      >
+        {value}
+      </p>
+      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
+        {label}
+      </p>
+    </div>
+  );
+}
+
