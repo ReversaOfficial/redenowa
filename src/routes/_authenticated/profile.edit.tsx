@@ -138,6 +138,7 @@ function EditProfilePage() {
       display_name: displayName,
       bio,
       city,
+      state,
       country,
     });
     if (!parsed.success) {
