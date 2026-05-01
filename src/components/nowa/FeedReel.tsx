@@ -196,7 +196,7 @@ const ReelSlide = memo(function ReelSlide({
   const { data: commentsCount = 0 } = useQuery({
     queryKey: ["comments-count", post.id],
     queryFn: () => fetchCommentsCount(post.id),
-    enabled: active,
+    enabled: nearActive,
     staleTime: 30_000,
   });
 
