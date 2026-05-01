@@ -183,26 +183,6 @@ function PublicProfilePage() {
               <Stat label="seguidores" value={follow?.followers ?? 0} />
               <Stat label="seguindo" value={follow?.following ?? 0} />
             </div>
-
-            {profile.bio ? (
-              <p className="mt-4 text-sm leading-snug text-foreground">
-                {profile.bio}
-              </p>
-            ) : (
-              <p className="mt-4 text-sm italic text-muted-foreground">
-                Sem bio. Só o agora.
-              </p>
-            )}
-
-            <div className="mt-5 flex items-center gap-2 rounded-2xl bg-card px-4 py-3">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
-              <span className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
-                {active?.length ?? 0} ao vivo agora
-              </span>
-            </div>
           </section>
 
           <div className="border-t border-border">
