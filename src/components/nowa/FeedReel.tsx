@@ -74,7 +74,7 @@ export function FeedReel({ posts }: { posts: Post[] }) {
   const preloadUrls = useMemo(() => {
     const urls: { url: string; isVideo: boolean }[] = [];
     for (let offset = -WINDOW; offset <= WINDOW; offset++) {
-      if (offset === 0) continue; // active slide handles itself
+      if (offset === 0) continue;
       const idx = activeIndex + offset;
       if (idx >= 0 && idx < posts.length) {
         urls.push({
@@ -97,7 +97,6 @@ export function FeedReel({ posts }: { posts: Post[] }) {
         queryFn: () => fetchCommentsCount(postId),
         staleTime: 30_000,
       });
-      // Prefetch full comments for adjacent slides (±1) so modal opens instantly
       if (Math.abs(i - activeIndex) <= 1) {
         qc.prefetchQuery({
           queryKey: ["comments", postId],
@@ -147,7 +146,6 @@ export function FeedReel({ posts }: { posts: Post[] }) {
                   nearActive={Math.abs(i - activeIndex) <= 1}
                 />
               ) : (
-                // Placeholder keeps scroll position correct
                 <div className="h-full w-full bg-black" />
               )}
             </div>
@@ -155,6 +153,32 @@ export function FeedReel({ posts }: { posts: Post[] }) {
         })}
       </div>
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Custom comparator: skip re-render when post fields haven't changed */
+/* ------------------------------------------------------------------ */
+function slidePropsAreEqual(
+  prev: { post: Post; active: boolean; nearActive: boolean },
+  next: { post: Post; active: boolean; nearActive: boolean },
+): boolean {
+  if (prev.active !== next.active) return false;
+  if (prev.nearActive !== next.nearActive) return false;
+  const a = prev.post;
+  const b = next.post;
+  return (
+    a.id === b.id &&
+    a.liked_by_me === b.liked_by_me &&
+    a.likes_count === b.likes_count &&
+    a.media_type === b.media_type &&
+    a.media_url === b.media_url &&
+    a.caption === b.caption &&
+    a.created_at === b.created_at &&
+    a.author_id === b.author_id &&
+    a.author.handle === b.author.handle &&
+    a.author.display_name === b.author.display_name &&
+    a.author.avatar_url === b.author.avatar_url
   );
 }
 
@@ -175,7 +199,14 @@ const ReelSlide = memo(function ReelSlide({
   const lastTapRef = useRef(0);
   const videoElRef = useRef<HTMLVideoElement>(null);
 
+  // Memoize derived values
   const isVideo = post.media_type === "video";
+  const isMine = user?.id === post.author_id;
+  const postId = post.id;
+  const authorId = post.author_id;
+  const authorHandle = post.author.handle;
+  const likedByMe = post.liked_by_me;
+  const likesCount = post.likes_count;
 
   // Autoplay / pause video based on active state
   useEffect(() => {
@@ -185,17 +216,14 @@ const ReelSlide = memo(function ReelSlide({
       el.play().catch(() => {});
     } else {
       el.pause();
-      // Only reset time if far away
       if (!nearActive) el.currentTime = 0;
     }
   }, [active, isVideo, nearActive]);
 
-  const isMine = user?.id === post.author_id;
-
-  // Comments count (live) — only fetch when active
+  // Comments count (live)
   const { data: commentsCount = 0 } = useQuery({
-    queryKey: ["comments-count", post.id],
-    queryFn: () => fetchCommentsCount(post.id),
+    queryKey: ["comments-count", postId],
+    queryFn: () => fetchCommentsCount(postId),
     enabled: nearActive,
     staleTime: 30_000,
   });
@@ -204,19 +232,19 @@ const ReelSlide = memo(function ReelSlide({
   useEffect(() => {
     if (!active) return;
     const channel = supabase
-      .channel(`comments-count:${post.id}`)
+      .channel(`comments-count:${postId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${post.id}` },
-        () => qc.invalidateQueries({ queryKey: ["comments-count", post.id] }),
+        { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${postId}` },
+        () => qc.invalidateQueries({ queryKey: ["comments-count", postId] }),
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [active, post.id, qc]);
+  }, [active, postId, qc]);
 
   // Like mutation (optimistic)
   const likeMutation = useMutation({
-    mutationFn: () => toggleLike(post.id, post.liked_by_me),
+    mutationFn: () => toggleLike(postId, likedByMe),
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ["posts"] });
       const prev = qc.getQueriesData<Post[]>({ queryKey: ["posts"] });
@@ -225,7 +253,7 @@ const ReelSlide = memo(function ReelSlide({
         qc.setQueryData<Post[]>(
           key,
           data.map((p) =>
-            p.id === post.id
+            p.id === postId
               ? { ...p, liked_by_me: !p.liked_by_me, likes_count: p.likes_count + (p.liked_by_me ? -1 : 1) }
               : p
           )
@@ -240,17 +268,20 @@ const ReelSlide = memo(function ReelSlide({
     onSettled: () => qc.invalidateQueries({ queryKey: ["posts"] }),
   });
 
-  // Follow state — prefetch for near-active slides too
-  const followKey = ["follow-state", post.author_id, user?.id ?? null] as const;
+  // Follow state
+  const followKey = useMemo(
+    () => ["follow-state", authorId, user?.id ?? null] as const,
+    [authorId, user?.id],
+  );
   const { data: follow } = useQuery({
     queryKey: followKey,
-    queryFn: () => fetchFollowState(post.author_id, user?.id ?? null),
+    queryFn: () => fetchFollowState(authorId, user?.id ?? null),
     enabled: !isMine && nearActive,
     staleTime: 60_000,
   });
 
   const followMutation = useMutation({
-    mutationFn: () => toggleFollow(post.author_id, !!follow?.is_following),
+    mutationFn: () => toggleFollow(authorId, !!follow?.is_following),
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: followKey });
       const prev = qc.getQueryData<FollowState>(followKey);
@@ -266,9 +297,9 @@ const ReelSlide = memo(function ReelSlide({
     },
     onSuccess: (_d, _v, ctx) => {
       if (ctx?.wasFollowing) {
-        toast(`Você deixou de seguir @${post.author.handle}`);
+        toast(`Você deixou de seguir @${authorHandle}`);
       } else {
-        toast.success(`Seguindo @${post.author.handle}`, {
+        toast.success(`Seguindo @${authorHandle}`, {
           description: "Você verá mais posts dele no seu feed.",
         });
       }
@@ -280,31 +311,34 @@ const ReelSlide = memo(function ReelSlide({
         { description: e instanceof Error ? e.message : "Tente novamente em instantes." }
       );
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: ["follow-state", post.author_id] }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["follow-state", authorId] }),
   });
 
   const handleTap = useCallback(() => {
     const now = Date.now();
     if (now - lastTapRef.current < 280) {
-      if (!post.liked_by_me) likeMutation.mutate();
+      if (!likedByMe) likeMutation.mutate();
       setShowHeart((c) => c + 1);
     }
     lastTapRef.current = now;
-  }, [post.liked_by_me, likeMutation]);
+  }, [likedByMe, likeMutation]);
 
   const handleShare = useCallback(() => {
-    const url = `${window.location.origin}/u/${post.author.handle}`;
+    const url = `${window.location.origin}/u/${authorHandle}`;
     if (navigator.share) {
-      navigator.share({ title: `@${post.author.handle} no NOWA`, url }).catch(() => {});
+      navigator.share({ title: `@${authorHandle} no NOWA`, url }).catch(() => {});
     } else {
       navigator.clipboard?.writeText(url);
       toast.success("Link copiado");
     }
-  }, [post.author.handle]);
+  }, [authorHandle]);
 
-  return (
-    <div className="relative h-full w-full" onClick={handleTap}>
-      {isVideo ? (
+  const handleCloseComments = useCallback(() => setCommentsOpen(false), []);
+
+  // Memoize the media element to avoid re-creating DOM on like changes
+  const mediaElement = useMemo(() => {
+    if (isVideo) {
+      return (
         <video
           ref={videoElRef}
           src={post.media_url}
@@ -315,16 +349,34 @@ const ReelSlide = memo(function ReelSlide({
           className="absolute inset-0 h-full w-full object-cover"
           draggable={false}
         />
-      ) : (
-        <img
-          src={post.media_url}
-          alt={post.caption ?? ""}
-          loading={nearActive ? "eager" : "lazy"}
-          decoding={nearActive ? "sync" : "async"}
-          className="absolute inset-0 h-full w-full object-cover"
-          draggable={false}
-        />
-      )}
+      );
+    }
+    return (
+      <img
+        src={post.media_url}
+        alt={post.caption ?? ""}
+        loading={nearActive ? "eager" : "lazy"}
+        decoding={nearActive ? "sync" : "async"}
+        className="absolute inset-0 h-full w-full object-cover"
+        draggable={false}
+      />
+    );
+  }, [isVideo, post.media_url, post.caption, nearActive, muted]);
+
+  // Memoize the author footer to skip re-render on like changes
+  const authorFooter = useMemo(() => (
+    <div className="flex items-center gap-2.5">
+      <Avatar src={post.author.avatar_url} name={post.author.display_name} size={40} />
+      <div className="leading-tight">
+        <p className="text-sm font-bold text-white drop-shadow">@{authorHandle}</p>
+        <p className="text-[11px] text-white/80 drop-shadow">{post.author.display_name}</p>
+      </div>
+    </div>
+  ), [post.author.avatar_url, post.author.display_name, authorHandle]);
+
+  return (
+    <div className="relative h-full w-full" onClick={handleTap}>
+      {mediaElement}
 
       {/* gradiente para legibilidade */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70" />
@@ -364,12 +416,12 @@ const ReelSlide = memo(function ReelSlide({
         >
           <motion.div whileTap={{ scale: 0.85 }}>
             <Heart
-              className={`h-8 w-8 drop-shadow-lg ${post.liked_by_me ? "fill-primary text-primary" : "text-white"}`}
-              strokeWidth={post.liked_by_me ? 0 : 2}
+              className={`h-8 w-8 drop-shadow-lg ${likedByMe ? "fill-primary text-primary" : "text-white"}`}
+              strokeWidth={likedByMe ? 0 : 2}
             />
           </motion.div>
           <span className="text-xs font-semibold tabular-nums text-white drop-shadow">
-            {post.likes_count}
+            {likesCount}
           </span>
         </button>
 
@@ -415,15 +467,11 @@ const ReelSlide = memo(function ReelSlide({
         <div className="flex items-center gap-3">
           <Link
             to="/u/$handle"
-            params={{ handle: post.author.handle }}
+            params={{ handle: authorHandle }}
             onClick={(e) => e.stopPropagation()}
             className="flex items-center gap-2.5"
           >
-            <Avatar src={post.author.avatar_url} name={post.author.display_name} size={40} />
-            <div className="leading-tight">
-              <p className="text-sm font-bold text-white drop-shadow">@{post.author.handle}</p>
-              <p className="text-[11px] text-white/80 drop-shadow">{post.author.display_name}</p>
-            </div>
+            {authorFooter}
           </Link>
 
           {!isMine && (
@@ -463,10 +511,10 @@ const ReelSlide = memo(function ReelSlide({
       </div>
 
       <CommentsPanel
-        postId={post.id}
+        postId={postId}
         open={commentsOpen}
-        onClose={() => setCommentsOpen(false)}
+        onClose={handleCloseComments}
       />
     </div>
   );
-});
+}, slidePropsAreEqual);
