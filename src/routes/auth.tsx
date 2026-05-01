@@ -44,6 +44,11 @@ const signupSchema = z.object({
     .trim()
     .min(2, "Informe sua cidade")
     .max(60, "Cidade muito longa"),
+  state: z
+    .string()
+    .trim()
+    .min(2, "Informe seu estado")
+    .max(60, "Estado muito longo"),
   country: z
     .string()
     .trim()
