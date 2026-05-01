@@ -58,9 +58,10 @@ function PostPage() {
   const [facing, setFacing] = useState<"user" | "environment">("environment");
   const [snap, setSnap] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<CameraErrorInfo | null>(null);
   const [ready, setReady] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
     if (stage !== "camera") return;
@@ -72,6 +73,9 @@ function PostPage() {
         setReady(false);
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((t) => t.stop());
+        }
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("MediaDevices not supported");
         }
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: facing },
@@ -88,9 +92,10 @@ function PostPage() {
           setReady(true);
         }
       } catch (e) {
-        const msg =
-          e instanceof Error ? e.message : "Não foi possível acessar a câmera.";
-        setError(msg);
+        if (cancelled) return;
+        const info = classifyCameraError(e);
+        setError(info);
+        toast.error(info.title, { description: info.message });
       }
     }
     start();
@@ -102,7 +107,7 @@ function PostPage() {
         streamRef.current = null;
       }
     };
-  }, [facing, stage]);
+  }, [facing, stage, retryToken]);
 
   function capture() {
     const video = videoRef.current;
