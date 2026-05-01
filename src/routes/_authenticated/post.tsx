@@ -323,6 +323,7 @@ function PostPage() {
     setVideoBlob(null);
     setVideoPreviewUrl(null);
     setCaption("");
+    setCloseFriendsOnly(false);
     setStage("camera");
   }
 
