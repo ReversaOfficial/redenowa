@@ -56,6 +56,12 @@ export const Route = createRootRoute({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "NOWA — O momento é agora." },
+      { name: "description", content: "Poste o agora, sem fakenews, sem uploads, apenas o agora. SEM ANÚNCIOS. Apenas o seu momento de agora." },
+      { property: "og:description", content: "Poste o agora, sem fakenews, sem uploads, apenas o agora. SEM ANÚNCIOS. Apenas o seu momento de agora." },
+      { name: "twitter:description", content: "Poste o agora, sem fakenews, sem uploads, apenas o agora. SEM ANÚNCIOS. Apenas o seu momento de agora." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fde43166-d974-4baa-a923-5b2968d8ef87/id-preview-708ac529--1cc9dad8-6e5a-4e66-a0d1-f9d9fd541132.lovable.app-1777643078564.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fde43166-d974-4baa-a923-5b2968d8ef87/id-preview-708ac529--1cc9dad8-6e5a-4e66-a0d1-f9d9fd541132.lovable.app-1777643078564.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
