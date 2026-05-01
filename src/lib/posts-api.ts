@@ -164,6 +164,7 @@ export async function toggleFollow(
       .insert({ follower_id: uid, following_id: targetId });
     if (error) throw error;
   }
+}
 
 export async function fetchUserPosts(
   userId: string,
