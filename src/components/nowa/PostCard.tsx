@@ -1,3 +1,4 @@
+import { memo, useCallback, useMemo } from "react";
 import { Heart, MessageCircle, Share2, Bookmark } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
@@ -10,11 +11,31 @@ import {
 } from "@/lib/posts-api";
 import { ExpiryCountdown } from "./ExpiryCountdown";
 
-export function PostCard({ post }: { post: Post }) {
+function postCardAreEqual(prev: { post: Post }, next: { post: Post }): boolean {
+  const a = prev.post;
+  const b = next.post;
+  return (
+    a.id === b.id &&
+    a.liked_by_me === b.liked_by_me &&
+    a.likes_count === b.likes_count &&
+    a.media_type === b.media_type &&
+    a.media_url === b.media_url &&
+    a.caption === b.caption &&
+    a.created_at === b.created_at &&
+    a.author.handle === b.author.handle &&
+    a.author.display_name === b.author.display_name &&
+    a.author.avatar_url === b.author.avatar_url
+  );
+}
+
+export const PostCard = memo(function PostCard({ post }: { post: Post }) {
   const qc = useQueryClient();
+  const postId = post.id;
+  const likedByMe = post.liked_by_me;
+  const likesCount = post.likes_count;
 
   const likeMutation = useMutation({
-    mutationFn: () => toggleLike(post.id, post.liked_by_me),
+    mutationFn: () => toggleLike(postId, likedByMe),
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ["posts"] });
       const prev = qc.getQueriesData<Post[]>({ queryKey: ["posts"] });
@@ -23,7 +44,7 @@ export function PostCard({ post }: { post: Post }) {
         qc.setQueryData<Post[]>(
           key,
           data.map((p) =>
-            p.id === post.id
+            p.id === postId
               ? {
                   ...p,
                   liked_by_me: !p.liked_by_me,
@@ -43,6 +64,39 @@ export function PostCard({ post }: { post: Post }) {
       qc.invalidateQueries({ queryKey: ["posts"] });
     },
   });
+
+  const handleShare = useCallback(() => {
+    const url = window.location.origin;
+    if (navigator.share) {
+      navigator.share({ title: "NOWA", url }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(url);
+      toast.success("Link copiado");
+    }
+  }, []);
+
+  // Memoize the media element so it doesn't re-mount on like changes
+  const mediaElement = useMemo(() => {
+    if (post.media_type === "video") {
+      return (
+        <video
+          src={post.media_url}
+          controls
+          playsInline
+          preload="metadata"
+          className="aspect-[4/5] w-full object-cover"
+        />
+      );
+    }
+    return (
+      <img
+        src={post.media_url}
+        alt={post.caption ?? ""}
+        loading="lazy"
+        className="aspect-[4/5] w-full object-cover"
+      />
+    );
+  }, [post.media_type, post.media_url, post.caption]);
 
   return (
     <article className="border-b border-border bg-background pb-4">
@@ -69,22 +123,7 @@ export function PostCard({ post }: { post: Post }) {
       </header>
 
       <div className="relative overflow-hidden bg-card">
-        {post.media_type === "video" ? (
-          <video
-            src={post.media_url}
-            controls
-            playsInline
-            preload="metadata"
-            className="aspect-[4/5] w-full object-cover"
-          />
-        ) : (
-          <img
-            src={post.media_url}
-            alt={post.caption ?? ""}
-            loading="lazy"
-            className="aspect-[4/5] w-full object-cover"
-          />
-        )}
+        {mediaElement}
       </div>
 
       <div className="flex items-center justify-between px-4 pt-3">
@@ -97,12 +136,12 @@ export function PostCard({ post }: { post: Post }) {
           >
             <Heart
               className={`h-6 w-6 transition-colors ${
-                post.liked_by_me ? "fill-primary text-primary" : "text-foreground"
+                likedByMe ? "fill-primary text-primary" : "text-foreground"
               }`}
-              strokeWidth={post.liked_by_me ? 0 : 2}
+              strokeWidth={likedByMe ? 0 : 2}
             />
             <span className="text-sm font-medium text-foreground tabular-nums">
-              {post.likes_count}
+              {likesCount}
             </span>
           </motion.button>
           <button className="flex items-center gap-1.5" aria-label="Comentar">
@@ -110,15 +149,7 @@ export function PostCard({ post }: { post: Post }) {
           </button>
           <button
             aria-label="Compartilhar"
-            onClick={() => {
-              const url = window.location.origin;
-              if (navigator.share) {
-                navigator.share({ title: "NOWA", url }).catch(() => {});
-              } else {
-                navigator.clipboard?.writeText(url);
-                toast.success("Link copiado");
-              }
-            }}
+            onClick={handleShare}
           >
             <Share2 className="h-6 w-6 text-foreground" strokeWidth={2} />
           </button>
@@ -142,7 +173,7 @@ export function PostCard({ post }: { post: Post }) {
       )}
     </article>
   );
-}
+}, postCardAreEqual);
 
 export function Avatar({
   src,
