@@ -143,13 +143,26 @@ export function Avatar({
   src,
   name,
   size = 40,
+  ringColor,
+  ringWidth = 3,
 }: {
   src: string | null;
   name: string;
   size?: number;
+  ringColor?: string | null;
+  ringWidth?: number;
 }) {
-  if (src) {
-    return (
+  const ringStyle = ringColor
+    ? {
+        padding: ringWidth,
+        background: ringColor,
+        borderRadius: 9999,
+        display: "inline-flex",
+      }
+    : undefined;
+
+  const inner =
+    src ? (
       <img
         src={src}
         alt={name}
@@ -159,15 +172,17 @@ export function Avatar({
         className="rounded-full object-cover"
         style={{ width: size, height: size }}
       />
+    ) : (
+      <div
+        className="flex items-center justify-center rounded-full bg-primary text-primary-foreground"
+        style={{ width: size, height: size, fontSize: size / 2.4 }}
+      >
+        <span className="font-semibold">
+          {(name?.[0] ?? "?").toUpperCase()}
+        </span>
+      </div>
     );
-  }
-  const initial = (name?.[0] ?? "?").toUpperCase();
-  return (
-    <div
-      className="flex items-center justify-center rounded-full bg-primary text-primary-foreground"
-      style={{ width: size, height: size, fontSize: size / 2.4 }}
-    >
-      <span className="font-semibold">{initial}</span>
-    </div>
-  );
+
+  if (!ringColor) return inner;
+  return <span style={ringStyle}>{inner}</span>;
 }
