@@ -385,6 +385,7 @@ function Field({
         autoComplete={autoComplete}
         required={required}
         minLength={minLength}
+        maxLength={maxLength}
         className="mt-1 w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background focus:outline-none"
       />
     </label>
