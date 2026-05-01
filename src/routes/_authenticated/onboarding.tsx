@@ -94,6 +94,7 @@ function OnboardingPage() {
       .update({
         display_name: parsed.data.display_name,
         city: parsed.data.city,
+        state: parsed.data.state,
         country: parsed.data.country,
         theme_bg: bg,
         theme_ring: ring,
