@@ -20,7 +20,7 @@ import { CameraErrorFallback } from "@/components/nowa/CameraErrorFallback";
 import { useAuth } from "@/lib/auth-context";
 import { createPost, uploadMedia } from "@/lib/posts-api";
 import { classifyCameraError, type CameraErrorInfo } from "@/lib/camera-errors";
-import { moderateImage } from "@/server/moderate.functions";
+import { moderateImage, moderatePost } from "@/server/moderate.functions";
 
 const CAPTION_MIN = 3;
 const CAPTION_MAX = 80;
