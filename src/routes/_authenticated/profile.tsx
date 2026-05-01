@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LogOut, Grid3x3, Loader2, Pencil, Clock, Lock } from "lucide-react";
+import { LogOut, Grid3x3, Loader2, Pencil, Clock, Lock, Heart } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { TopBar } from "@/components/nowa/TopBar";
 import { Avatar } from "@/components/nowa/PostCard";
@@ -10,6 +10,7 @@ import { fetchUserPosts, timeRemaining, useMinuteTick } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { readableTextOn, withAlpha } from "@/lib/color";
+import { CloseFriendsManager } from "@/components/nowa/CloseFriendsManager";
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/profile")({
 function ProfilePage() {
   const { profile, user, signOut } = useAuth();
   const qc = useQueryClient();
+  const [closeFriendsOpen, setCloseFriendsOpen] = useState(false);
   // re-render every minute so countdowns update
   useMinuteTick();
 
@@ -189,8 +191,17 @@ function ProfilePage() {
             <Lock className="h-3.5 w-3.5" />
             Arquivo privado
           </Link>
+          <button
+            onClick={() => setCloseFriendsOpen(true)}
+            className="nowa-tap inline-flex items-center gap-2 rounded-full border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-500"
+          >
+            <Heart className="h-3.5 w-3.5 fill-emerald-500" strokeWidth={0} />
+            Melhores Amigos
+          </button>
         </div>
       </section>
+
+      <CloseFriendsManager open={closeFriendsOpen} onOpenChange={setCloseFriendsOpen} />
 
       <div className="border-t border-border">
         <div className="flex items-center gap-2 border-b-2 border-foreground px-5 py-3">
@@ -231,6 +242,9 @@ function ProfilePage() {
                 <span className="absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-medium text-white">
                   {timeRemaining(p.created_at)}
                 </span>
+                {p.close_friends_only && (
+                  <Heart className="absolute top-1 right-1 h-4 w-4 fill-emerald-500 text-emerald-500 drop-shadow" strokeWidth={0} />
+                )}
               </div>
             ))}
           </div>

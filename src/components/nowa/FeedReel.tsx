@@ -187,6 +187,7 @@ function slidePropsAreEqual(
     a.caption === b.caption &&
     a.created_at === b.created_at &&
     a.flagged === b.flagged &&
+    a.close_friends_only === b.close_friends_only &&
     a.author_id === b.author_id &&
     a.author.handle === b.author.handle &&
     a.author.display_name === b.author.display_name &&
@@ -418,6 +419,16 @@ const ReelSlide = memo(function ReelSlide({
           {timeRemaining(post.created_at)}
         </span>
       </div>
+
+      {/* Badge melhores amigos */}
+      {post.close_friends_only && (
+        <div className="absolute right-4 top-[max(env(safe-area-inset-top),16px)] z-10">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">
+            <Heart className="h-3 w-3 fill-white" strokeWidth={0} />
+            Melhores Amigos
+          </span>
+        </div>
+      )}
 
       {/* Banner de post marcado como impróprio (só o autor vê) */}
       {post.flagged && isMine && (

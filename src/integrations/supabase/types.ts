@@ -32,6 +32,27 @@ export type Database = {
         }
         Relationships: []
       }
+      close_friends: {
+        Row: {
+          created_at: string
+          friend_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           author_id: string
@@ -111,6 +132,7 @@ export type Database = {
         Row: {
           author_id: string
           caption: string | null
+          close_friends_only: boolean
           created_at: string
           flagged: boolean
           flagged_reason: string | null
@@ -121,6 +143,7 @@ export type Database = {
         Insert: {
           author_id: string
           caption?: string | null
+          close_friends_only?: boolean
           created_at?: string
           flagged?: boolean
           flagged_reason?: string | null
@@ -131,6 +154,7 @@ export type Database = {
         Update: {
           author_id?: string
           caption?: string | null
+          close_friends_only?: boolean
           created_at?: string
           flagged?: boolean
           flagged_reason?: string | null

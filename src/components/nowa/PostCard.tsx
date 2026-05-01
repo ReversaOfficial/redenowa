@@ -23,6 +23,7 @@ function postCardAreEqual(prev: { post: Post }, next: { post: Post }): boolean {
     a.caption === b.caption &&
     a.created_at === b.created_at &&
     a.flagged === b.flagged &&
+    a.close_friends_only === b.close_friends_only &&
     a.author.handle === b.author.handle &&
     a.author.display_name === b.author.display_name &&
     a.author.avatar_url === b.author.avatar_url
@@ -120,7 +121,15 @@ export const PostCard = memo(function PostCard({ post }: { post: Post }) {
             </p>
           </div>
         </Link>
-        <ExpiryCountdown createdAt={post.created_at} />
+        <div className="flex items-center gap-2">
+          {post.close_friends_only && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-2 py-0.5 text-[10px] font-bold text-white">
+              <Heart className="h-2.5 w-2.5 fill-white" strokeWidth={0} />
+              Melhores Amigos
+            </span>
+          )}
+          <ExpiryCountdown createdAt={post.created_at} />
+        </div>
       </header>
 
       <div className="relative overflow-hidden bg-card">
