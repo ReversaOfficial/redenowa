@@ -34,6 +34,13 @@ function getAge(dob: Date): number {
 }
 
 const signupSchema = z.object({
+  handle: z
+    .string()
+    .trim()
+    .min(3, "Nome de usuário deve ter ao menos 3 caracteres")
+    .max(20, "Nome de usuário muito longo")
+    .regex(/^[a-z0-9_]+$/, "Apenas letras minúsculas, números e _")
+    .transform((v) => v.toLowerCase()),
   name: z
     .string()
     .trim()
@@ -76,6 +83,7 @@ function AuthPage() {
   const [mode, setMode] = useState<Mode>(search.mode ?? "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [handle, setHandle] = useState("");
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
@@ -96,6 +104,7 @@ function AuthPage() {
     try {
       if (mode === "signup") {
         const parsed = signupSchema.safeParse({
+          handle,
           name,
           city,
           state,
@@ -115,6 +124,7 @@ function AuthPage() {
           options: {
             emailRedirectTo: window.location.origin,
             data: {
+              handle: parsed.data.handle,
               display_name: parsed.data.name,
               city: parsed.data.city,
               state: parsed.data.state,
@@ -213,6 +223,17 @@ function AuthPage() {
         <form onSubmit={handleSubmit} className="mt-6 space-y-3">
           {mode === "signup" && (
             <>
+              <Field
+                label="Nome de usuário (@)"
+                type="text"
+                value={handle}
+                onChange={(v) => setHandle(v.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                placeholder="seu_usuario"
+                autoComplete="username"
+                required
+                minLength={3}
+                maxLength={20}
+              />
               <Field
                 label="Nome"
                 type="text"
@@ -339,6 +360,7 @@ function Field({
   autoComplete,
   required,
   minLength,
+  maxLength,
 }: {
   label: string;
   type: string;
@@ -348,6 +370,7 @@ function Field({
   autoComplete?: string;
   required?: boolean;
   minLength?: number;
+  maxLength?: number;
 }) {
   return (
     <label className="block">
@@ -362,6 +385,7 @@ function Field({
         autoComplete={autoComplete}
         required={required}
         minLength={minLength}
+        maxLength={maxLength}
         className="mt-1 w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background focus:outline-none"
       />
     </label>
