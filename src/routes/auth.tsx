@@ -117,6 +117,7 @@ function AuthPage() {
             data: {
               display_name: parsed.data.name,
               city: parsed.data.city,
+              state: parsed.data.state,
               country: parsed.data.country,
               date_of_birth: parsed.data.dateOfBirth,
             },
