@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, useMemo, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
-import { Heart, MessageCircle, Share2, UserPlus, UserCheck, Clock, Loader2, Volume2, VolumeX, ShieldAlert, Flag } from "lucide-react";
+import {
+  Heart, MessageCircle, Share2, UserPlus, UserCheck, Clock, Loader2,
+  Volume2, VolumeX, ShieldAlert, Flag, ChevronLeft, ChevronRight,
+} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Avatar } from "./PostCard";
@@ -21,14 +24,35 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 
-// Number of slides to keep mounted around the active one (±WINDOW)
+// ── Types ──
+type AuthorGroup = {
+  authorId: string;
+  posts: Post[];
+};
+
+// ── Helpers ──
+function groupByAuthor(posts: Post[]): AuthorGroup[] {
+  const map = new Map<string, Post[]>();
+  const order: string[] = [];
+  for (const p of posts) {
+    if (!map.has(p.author_id)) {
+      map.set(p.author_id, []);
+      order.push(p.author_id);
+    }
+    map.get(p.author_id)!.push(p);
+  }
+  return order.map((id) => ({ authorId: id, posts: map.get(id)! }));
+}
+
 const WINDOW = 2;
 
 export function FeedReel({ posts }: { posts: Post[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeGroupIdx, setActiveGroupIdx] = useState(0);
   const { user } = useAuth();
   const qc = useQueryClient();
+
+  const groups = useMemo(() => groupByAuthor(posts), [posts]);
 
   // Realtime sync
   useEffect(() => {
@@ -52,17 +76,17 @@ export function FeedReel({ posts }: { posts: Post[] }) {
     return () => { supabase.removeChannel(channel); };
   }, [user?.id, qc]);
 
-  // Intersection observer for active slide
+  // Intersection observer for active group
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const items = Array.from(el.querySelectorAll<HTMLElement>("[data-reel-item]"));
+    const items = Array.from(el.querySelectorAll<HTMLElement>("[data-group-item]"));
     const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting && e.intersectionRatio > 0.6) {
-            const idx = Number((e.target as HTMLElement).dataset.idx);
-            if (!Number.isNaN(idx)) setActiveIndex(idx);
+            const idx = Number((e.target as HTMLElement).dataset.groupIdx);
+            if (!Number.isNaN(idx)) setActiveGroupIdx(idx);
           }
         });
       },
@@ -70,63 +94,13 @@ export function FeedReel({ posts }: { posts: Post[] }) {
     );
     items.forEach((i) => obs.observe(i));
     return () => obs.disconnect();
-  }, [posts.length]);
+  }, [groups.length]);
 
-  // Preload adjacent media (images & video metadata) via <link> hints
-  const preloadUrls = useMemo(() => {
-    const urls: { url: string; isVideo: boolean }[] = [];
-    for (let offset = -WINDOW; offset <= WINDOW; offset++) {
-      if (offset === 0) continue;
-      const idx = activeIndex + offset;
-      if (idx >= 0 && idx < posts.length) {
-        urls.push({
-          url: posts[idx].media_url,
-          isVideo: posts[idx].media_type === "video",
-        });
-      }
-    }
-    return urls;
-  }, [activeIndex, posts]);
-
-  // Prefetch comments count + comments data for all slides in the render window
-  useEffect(() => {
-    const windowStart = Math.max(0, activeIndex - WINDOW);
-    const windowEnd = Math.min(posts.length - 1, activeIndex + WINDOW);
-    for (let i = windowStart; i <= windowEnd; i++) {
-      const postId = posts[i].id;
-      qc.prefetchQuery({
-        queryKey: ["comments-count", postId],
-        queryFn: () => fetchCommentsCount(postId),
-        staleTime: 30_000,
-      });
-      if (Math.abs(i - activeIndex) <= 1) {
-        qc.prefetchQuery({
-          queryKey: ["comments", postId],
-          queryFn: () => fetchComments(postId),
-          staleTime: 30_000,
-        });
-      }
-    }
-  }, [activeIndex, posts, qc]);
-
-  // Determine which slides are in the render window
-  const windowStart = Math.max(0, activeIndex - WINDOW);
-  const windowEnd = Math.min(posts.length - 1, activeIndex + WINDOW);
+  const windowStart = Math.max(0, activeGroupIdx - WINDOW);
+  const windowEnd = Math.min(groups.length - 1, activeGroupIdx + WINDOW);
 
   return (
     <>
-      {/* Preload hints for adjacent slides */}
-      {preloadUrls.map(({ url, isVideo }) => (
-        <link
-          key={url}
-          rel="preload"
-          href={url}
-          as={isVideo ? "video" : "image"}
-          // @ts-expect-error fetchpriority is valid HTML
-          fetchpriority="low"
-        />
-      ))}
-
       {/* Branding overlay */}
       <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),12px)] pb-2">
         <div>
@@ -142,20 +116,20 @@ export function FeedReel({ posts }: { posts: Post[] }) {
         className="h-[100dvh] w-full overflow-y-auto snap-y snap-mandatory bg-black"
         style={{ scrollSnapType: "y mandatory" }}
       >
-        {posts.map((post, i) => {
-          const inWindow = i >= windowStart && i <= windowEnd;
+        {groups.map((group, gi) => {
+          const inWindow = gi >= windowStart && gi <= windowEnd;
           return (
             <div
-              key={post.id}
-              data-reel-item
-              data-idx={i}
+              key={group.authorId}
+              data-group-item
+              data-group-idx={gi}
               className="relative h-[100dvh] w-full snap-start snap-always"
             >
               {inWindow ? (
-                <ReelSlide
-                  post={post}
-                  active={i === activeIndex}
-                  nearActive={Math.abs(i - activeIndex) <= 1}
+                <GroupSlide
+                  group={group}
+                  active={gi === activeGroupIdx}
+                  nearActive={Math.abs(gi - activeGroupIdx) <= 1}
                 />
               ) : (
                 <div className="h-full w-full bg-black" />
@@ -169,14 +143,116 @@ export function FeedReel({ posts }: { posts: Post[] }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Custom comparator: skip re-render when post fields haven't changed */
+/*  GroupSlide — handles horizontal navigation within an author's posts */
 /* ------------------------------------------------------------------ */
+
+function GroupSlide({
+  group,
+  active,
+  nearActive,
+}: {
+  group: AuthorGroup;
+  active: boolean;
+  nearActive: boolean;
+}) {
+  const [currentPostIdx, setCurrentPostIdx] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const post = group.posts[Math.min(currentPostIdx, group.posts.length - 1)];
+  const total = group.posts.length;
+
+  // Auto-advance for images (5s), videos play to end then advance
+  useEffect(() => {
+    if (!active || total <= 1) return;
+    const isVideo = post.media_type === "video";
+    if (!isVideo) {
+      timerRef.current = setTimeout(() => {
+        setCurrentPostIdx((i) => (i + 1 < total ? i + 1 : i));
+      }, 5000);
+    }
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [active, currentPostIdx, total, post.media_type]);
+
+  // Reset to first post when group becomes active
+  useEffect(() => {
+    if (active) setCurrentPostIdx(0);
+  }, [active]);
+
+  const goNext = useCallback(() => {
+    if (currentPostIdx + 1 < total) {
+      setCurrentPostIdx((i) => i + 1);
+    }
+  }, [currentPostIdx, total]);
+
+  const goPrev = useCallback(() => {
+    if (currentPostIdx > 0) {
+      setCurrentPostIdx((i) => i - 1);
+    }
+  }, [currentPostIdx]);
+
+  return (
+    <div className="relative h-full w-full">
+      {/* Progress bars — Stories style */}
+      {total > 1 && (
+        <div className="absolute inset-x-3 top-[calc(max(env(safe-area-inset-top),12px)+32px)] z-30 flex gap-1">
+          {group.posts.map((p, i) => (
+            <div
+              key={p.id}
+              className="h-[2.5px] flex-1 overflow-hidden rounded-full bg-white/30"
+            >
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  i < currentPostIdx
+                    ? "w-full bg-white"
+                    : i === currentPostIdx
+                      ? "w-full bg-white"
+                      : "w-0 bg-white"
+                }`}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Tap zones — left/right to navigate within author */}
+      {total > 1 && (
+        <>
+          <button
+            type="button"
+            className="absolute left-0 top-0 z-20 h-full w-1/4"
+            onClick={(e) => { e.stopPropagation(); goPrev(); }}
+            aria-label="Post anterior"
+          />
+          <button
+            type="button"
+            className="absolute right-0 top-0 z-20 h-full w-1/4"
+            onClick={(e) => { e.stopPropagation(); goNext(); }}
+            aria-label="Próximo post"
+          />
+        </>
+      )}
+
+      <ReelSlide
+        post={post}
+        active={active}
+        nearActive={nearActive}
+        onVideoEnded={goNext}
+        hasMultiple={total > 1}
+      />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ReelSlide — individual post (unchanged logic, extracted)           */
+/* ------------------------------------------------------------------ */
+
 function slidePropsAreEqual(
-  prev: { post: Post; active: boolean; nearActive: boolean },
-  next: { post: Post; active: boolean; nearActive: boolean },
+  prev: { post: Post; active: boolean; nearActive: boolean; hasMultiple: boolean },
+  next: { post: Post; active: boolean; nearActive: boolean; hasMultiple: boolean },
 ): boolean {
   if (prev.active !== next.active) return false;
   if (prev.nearActive !== next.nearActive) return false;
+  if (prev.hasMultiple !== next.hasMultiple) return false;
   const a = prev.post;
   const b = next.post;
   return (
@@ -200,10 +276,14 @@ const ReelSlide = memo(function ReelSlide({
   post,
   active,
   nearActive,
+  onVideoEnded,
+  hasMultiple,
 }: {
   post: Post;
   active: boolean;
   nearActive: boolean;
+  onVideoEnded?: () => void;
+  hasMultiple: boolean;
 }) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -214,7 +294,6 @@ const ReelSlide = memo(function ReelSlide({
   const lastTapRef = useRef(0);
   const videoElRef = useRef<HTMLVideoElement>(null);
 
-  // Memoize derived values
   const isVideo = post.media_type === "video";
   const isMine = user?.id === post.author_id;
   const postId = post.id;
@@ -223,19 +302,29 @@ const ReelSlide = memo(function ReelSlide({
   const likedByMe = post.liked_by_me;
   const likesCount = post.likes_count;
 
-  // Autoplay / pause video based on active state
+  // Autoplay / pause video
   useEffect(() => {
     const el = videoElRef.current;
     if (!el || !isVideo) return;
     if (active) {
+      el.currentTime = 0;
       el.play().catch(() => {});
     } else {
       el.pause();
       if (!nearActive) el.currentTime = 0;
     }
-  }, [active, isVideo, nearActive]);
+  }, [active, isVideo, nearActive, postId]);
 
-  // Comments count (live)
+  // Video ended → advance to next post in group
+  useEffect(() => {
+    const el = videoElRef.current;
+    if (!el || !isVideo || !active || !hasMultiple) return;
+    const handler = () => onVideoEnded?.();
+    el.addEventListener("ended", handler);
+    return () => el.removeEventListener("ended", handler);
+  }, [isVideo, active, hasMultiple, onVideoEnded]);
+
+  // Comments count
   const { data: commentsCount = 0 } = useQuery({
     queryKey: ["comments-count", postId],
     queryFn: () => fetchCommentsCount(postId),
@@ -243,7 +332,6 @@ const ReelSlide = memo(function ReelSlide({
     staleTime: 30_000,
   });
 
-  // Realtime comments count sync
   useEffect(() => {
     if (!active) return;
     const channel = supabase
@@ -257,7 +345,7 @@ const ReelSlide = memo(function ReelSlide({
     return () => { supabase.removeChannel(channel); };
   }, [active, postId, qc]);
 
-  // Like mutation (optimistic)
+  // Like mutation
   const likeMutation = useMutation({
     mutationFn: () => toggleLike(postId, likedByMe),
     onMutate: async () => {
@@ -350,14 +438,13 @@ const ReelSlide = memo(function ReelSlide({
 
   const handleCloseComments = useCallback(() => setCommentsOpen(false), []);
 
-  // Memoize the media element to avoid re-creating DOM on like changes
   const mediaElement = useMemo(() => {
     if (isVideo) {
       return (
         <video
           ref={videoElRef}
           src={post.media_url}
-          loop
+          loop={!hasMultiple}
           muted={muted}
           playsInline
           preload={nearActive ? "auto" : "metadata"}
@@ -376,9 +463,8 @@ const ReelSlide = memo(function ReelSlide({
         draggable={false}
       />
     );
-  }, [isVideo, post.media_url, post.caption, nearActive, muted]);
+  }, [isVideo, post.media_url, post.caption, nearActive, muted, hasMultiple]);
 
-  // Memoize the author footer to skip re-render on like changes
   const authorFooter = useMemo(() => (
     <div className="flex items-center gap-2.5">
       <Avatar src={post.author.avatar_url} name={post.author.display_name} size={40} />
@@ -393,10 +479,8 @@ const ReelSlide = memo(function ReelSlide({
     <div className="relative h-full w-full" onClick={handleTap}>
       {mediaElement}
 
-      {/* gradiente para legibilidade */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70" />
 
-      {/* duplo-toque heart */}
       <AnimatePresence>
         {showHeart > 0 && (
           <motion.div
@@ -421,7 +505,6 @@ const ReelSlide = memo(function ReelSlide({
         </span>
       </div>
 
-      {/* Badge melhores amigos */}
       {post.close_friends_only && (
         <div className="absolute right-4 top-[max(env(safe-area-inset-top),16px)] z-10">
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">
@@ -431,7 +514,6 @@ const ReelSlide = memo(function ReelSlide({
         </div>
       )}
 
-      {/* Banner de post marcado como impróprio (só o autor vê) */}
       {post.flagged && isMine && (
         <div className="absolute inset-x-4 top-[calc(max(env(safe-area-inset-top),16px)+36px)] z-10">
           <div className="flex items-center gap-2 rounded-2xl bg-destructive/90 px-4 py-2.5 backdrop-blur">
@@ -451,7 +533,7 @@ const ReelSlide = memo(function ReelSlide({
         </div>
       )}
 
-      {/* coluna de ações à direita */}
+      {/* coluna de ações */}
       <div className="absolute bottom-32 right-3 z-10 flex flex-col items-center gap-5">
         <button
           type="button"
