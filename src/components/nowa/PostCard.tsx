@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo } from "react";
+import { MentionText } from "./MentionText";
 import { Heart, MessageCircle, Share2, Bookmark } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
@@ -178,7 +179,7 @@ export const PostCard = memo(function PostCard({ post }: { post: Post }) {
           >
             {post.author.handle}
           </Link>{" "}
-          {post.caption}
+          <MentionText text={post.caption} />
         </p>
       )}
       <p className="px-4 pt-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/50">

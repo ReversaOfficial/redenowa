@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Avatar } from "./PostCard";
 import { CommentsPanel } from "./CommentsPanel";
+import { MentionText } from "./MentionText";
 import { ReportDialog } from "./ReportDialog";
 import {
   fetchComments,
@@ -560,7 +561,7 @@ const ReelSlide = memo(function ReelSlide({
 
         {post.caption && (
           <p className="mt-3 line-clamp-3 text-sm leading-snug text-white drop-shadow">
-            {post.caption}
+            <MentionText text={post.caption} className="[&_a]:text-white [&_a]:underline" />
           </p>
         )}
       </div>
