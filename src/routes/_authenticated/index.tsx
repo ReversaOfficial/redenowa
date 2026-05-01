@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { FeedReel } from "@/components/nowa/FeedReel";
+import { NotificationBell, NotificationsPanel } from "@/components/nowa/NotificationsPanel";
 import { fetchFeedPosts, useMinuteTick } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
 
@@ -25,6 +26,7 @@ const POST_TTL_MS = 24 * 60 * 60 * 1000;
 
 function FeedPage() {
   const { user } = useAuth();
+  const [notifOpen, setNotifOpen] = useState(false);
   const tick = useMinuteTick();
   const qc = useQueryClient();
   const queryKey = ["posts", "feed", user?.id ?? null];
@@ -103,7 +105,11 @@ function FeedPage() {
 
   return (
     <MobileShell fullBleed>
+      <div className="absolute top-4 right-4 z-30">
+        <NotificationBell onClick={() => setNotifOpen(true)} />
+      </div>
       <FeedReel posts={fresh} />
+      <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
     </MobileShell>
   );
 }
