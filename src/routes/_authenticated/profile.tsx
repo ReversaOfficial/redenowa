@@ -8,6 +8,7 @@ import { Avatar } from "@/components/nowa/PostCard";
 import { fetchUserPosts, timeRemaining, useMinuteTick } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
+import { readableTextOn, withAlpha } from "@/lib/color";
 
 const HOUR_MS = 60 * 60 * 1000;
 
