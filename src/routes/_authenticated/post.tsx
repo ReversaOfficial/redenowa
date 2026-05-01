@@ -125,11 +125,16 @@ function PostPage() {
 
   async function publish() {
     if (!snap || !user || publishing) return;
+    const parsed = captionSchema.safeParse(caption);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Legenda inválida");
+      return;
+    }
     setPublishing(true);
     try {
       const blob = dataURLtoBlob(snap);
       const url = await uploadMedia(user.id, blob, "jpg");
-      await createPost({ authorId: user.id, mediaUrl: url, caption: caption.trim() });
+      await createPost({ authorId: user.id, mediaUrl: url, caption: parsed.data });
       qc.invalidateQueries({ queryKey: ["posts"] });
       toast.success("Publicado. O momento é agora.");
       navigate({ to: "/" });
