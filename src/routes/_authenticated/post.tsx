@@ -12,9 +12,18 @@ import {
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { z } from "zod";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { useAuth } from "@/lib/auth-context";
 import { createPost, uploadMedia } from "@/lib/posts-api";
+
+const CAPTION_MIN = 3;
+const CAPTION_MAX = 80;
+const captionSchema = z
+  .string()
+  .trim()
+  .min(CAPTION_MIN, `Mínimo ${CAPTION_MIN} caracteres`)
+  .max(CAPTION_MAX, `Máximo ${CAPTION_MAX} caracteres`);
 
 export const Route = createFileRoute("/_authenticated/post")({
   head: () => ({
