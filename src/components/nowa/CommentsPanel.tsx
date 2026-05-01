@@ -6,6 +6,7 @@ import { Loader2, Send, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Avatar } from "./PostCard";
+import { MentionText } from "./MentionText";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import {
