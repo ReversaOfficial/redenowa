@@ -408,3 +408,81 @@ export async function toggleBlock(targetId: string, currentlyBlocked: boolean) {
     if (error) throw error;
   }
 }
+
+export type Comment = {
+  id: string;
+  post_id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+  author: {
+    id: string;
+    handle: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
+};
+
+type RawComment = {
+  id: string;
+  post_id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+  profiles: Comment["author"] | null;
+};
+
+export async function fetchComments(postId: string): Promise<Comment[]> {
+  const { data, error } = await supabase
+    .from("comments")
+    .select(
+      "id, post_id, author_id, content, created_at, profiles!comments_author_id_fkey(id, handle, display_name, avatar_url)"
+    )
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true })
+    .limit(200);
+  if (error) throw error;
+  return ((data ?? []) as unknown as RawComment[])
+    .filter((c) => c.profiles)
+    .map((c) => ({
+      id: c.id,
+      post_id: c.post_id,
+      author_id: c.author_id,
+      content: c.content,
+      created_at: c.created_at,
+      author: c.profiles!,
+    }));
+}
+
+export async function addComment(postId: string, content: string) {
+  const trimmed = content.trim();
+  if (trimmed.length < 1 || trimmed.length > 500) {
+    throw new Error("Comentário deve ter entre 1 e 500 caracteres");
+  }
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id;
+  if (!uid) throw new Error("Not authenticated");
+  const { data, error } = await supabase
+    .from("comments")
+    .insert({ post_id: postId, author_id: uid, content: trimmed })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+export async function deleteComment(commentId: string) {
+  const { error } = await supabase
+    .from("comments")
+    .delete()
+    .eq("id", commentId);
+  if (error) throw error;
+}
+
+export async function fetchCommentsCount(postId: string): Promise<number> {
+  const { count } = await supabase
+    .from("comments")
+    .select("*", { count: "exact", head: true })
+    .eq("post_id", postId);
+  return count ?? 0;
+}

@@ -5,7 +5,9 @@ import { Heart, MessageCircle, Share2, UserPlus, UserCheck, Clock, Loader2 } fro
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Avatar } from "./PostCard";
+import { CommentsPanel } from "./CommentsPanel";
 import {
+  fetchCommentsCount,
   fetchFollowState,
   toggleFollow,
   toggleLike,
@@ -93,9 +95,41 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [showHeart, setShowHeart] = useState(0);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const lastTapRef = useRef(0);
 
   const isMine = user?.id === post.author_id;
+
+  // Comments count (live)
+  const { data: commentsCount = 0 } = useQuery({
+    queryKey: ["comments-count", post.id],
+    queryFn: () => fetchCommentsCount(post.id),
+    enabled: active,
+    staleTime: 30_000,
+  });
+
+  // Realtime: keep the count in sync with inserts/deletes for this post
+  useEffect(() => {
+    if (!active) return;
+    const channel = supabase
+      .channel(`comments-count:${post.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "comments",
+          filter: `post_id=eq.${post.id}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ["comments-count", post.id] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [active, post.id, qc]);
 
   // Like mutation (optimistic across all post queries)
   const likeMutation = useMutation({
@@ -258,9 +292,15 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
           type="button"
           className="flex flex-col items-center gap-1"
           aria-label="Comentar"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            setCommentsOpen(true);
+          }}
         >
           <MessageCircle className="h-8 w-8 text-white drop-shadow-lg" strokeWidth={2} />
+          <span className="text-xs font-semibold tabular-nums text-white drop-shadow">
+            {commentsCount}
+          </span>
         </button>
 
         <button
@@ -338,6 +378,12 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
           </p>
         )}
       </div>
+
+      <CommentsPanel
+        postId={post.id}
+        open={commentsOpen}
+        onClose={() => setCommentsOpen(false)}
+      />
     </div>
   );
 }
