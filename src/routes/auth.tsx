@@ -25,6 +25,14 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+function getAge(dob: Date): number {
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  return age;
+}
+
 const signupSchema = z.object({
   name: z
     .string()
@@ -41,6 +49,13 @@ const signupSchema = z.object({
     .trim()
     .min(2, "Informe seu país")
     .max(60, "País muito longo"),
+  dateOfBirth: z
+    .string()
+    .min(1, "Informe sua data de nascimento")
+    .refine((v) => {
+      const d = new Date(v);
+      return !isNaN(d.getTime()) && getAge(d) >= 16;
+    }, "Você precisa ter pelo menos 16 anos para se cadastrar"),
   email: z.string().trim().email("Email inválido").max(255),
   password: z.string().min(6, "Senha deve ter ao menos 6 caracteres").max(72),
 });
