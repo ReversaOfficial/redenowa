@@ -11,6 +11,7 @@ import {
   Loader2,
   Video,
   Square,
+  Heart,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -539,6 +540,36 @@ function PostPage() {
                     {caption.length}/{CAPTION_MAX}
                   </span>
                 </div>
+              </div>
+
+              {/* Close friends toggle */}
+              <div className="px-4 pb-3">
+                <button
+                  type="button"
+                  onClick={() => setCloseFriendsOnly((v) => !v)}
+                  className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                    closeFriendsOnly
+                      ? "border-emerald-500 bg-emerald-500/10"
+                      : "border-border bg-card"
+                  }`}
+                >
+                  <Heart
+                    className={`h-5 w-5 ${
+                      closeFriendsOnly ? "fill-emerald-500 text-emerald-500" : "text-muted-foreground"
+                    }`}
+                  />
+                  <div className="flex-1 text-left">
+                    <p className={`text-sm font-semibold ${closeFriendsOnly ? "text-emerald-500" : "text-foreground"}`}>
+                      Melhores Amigos
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {closeFriendsOnly ? "Só seus melhores amigos verão" : "Visível para todos"}
+                    </p>
+                  </div>
+                  <div className={`h-5 w-9 rounded-full transition-colors ${closeFriendsOnly ? "bg-emerald-500" : "bg-muted"}`}>
+                    <div className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${closeFriendsOnly ? "translate-x-4" : "translate-x-0"}`} />
+                  </div>
+                </button>
               </div>
             </div>
 
