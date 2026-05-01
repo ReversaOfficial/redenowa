@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Avatar } from "./PostCard";
 import { CommentsPanel } from "./CommentsPanel";
 import {
+  fetchComments,
   fetchCommentsCount,
   fetchFollowState,
   toggleFollow,
