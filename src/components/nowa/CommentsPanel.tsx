@@ -239,7 +239,7 @@ export function CommentsPanel({
                             </span>
                           </div>
                           <p className="break-words text-sm leading-snug text-foreground">
-                            {c.content}
+                            <MentionText text={c.content} />
                           </p>
                         </div>
                         {mine && !optimistic && (
