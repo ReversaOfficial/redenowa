@@ -99,7 +99,7 @@ export async function fetchActivePosts(myId: string | null): Promise<Post[]> {
   let q = supabase
     .from("posts")
     .select(
-      "id, author_id, media_url, media_type, caption, created_at, flagged, flagged_reason, profiles!posts_author_id_fkey(id, handle, display_name, avatar_url), likes(user_id)"
+      "id, author_id, media_url, media_type, caption, created_at, flagged, flagged_reason, close_friends_only, profiles!posts_author_id_fkey(id, handle, display_name, avatar_url), likes(user_id)"
     )
     .gt("created_at", cutoff)
     .order("created_at", { ascending: false })
@@ -280,7 +280,7 @@ export async function fetchUserPosts(
   let q = supabase
     .from("posts")
     .select(
-      "id, author_id, media_url, media_type, caption, created_at, flagged, flagged_reason, profiles!posts_author_id_fkey(id, handle, display_name, avatar_url), likes(user_id)"
+      "id, author_id, media_url, media_type, caption, created_at, flagged, flagged_reason, close_friends_only, profiles!posts_author_id_fkey(id, handle, display_name, avatar_url), likes(user_id)"
     )
     .eq("author_id", userId)
     .order("created_at", { ascending: false })
