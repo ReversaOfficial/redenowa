@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LogOut, Grid3x3, Loader2, Pencil, Clock } from "lucide-react";
+import { LogOut, Grid3x3, Loader2, Pencil, Clock, Lock } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { MobileShell } from "@/components/nowa/MobileShell";
@@ -64,12 +64,15 @@ function ProfilePage() {
     if (!active || active.length === 0) return;
     const now = Date.now();
     const timers = active
-      .map((p) => {
+          .map((p) => {
         const expireAt = new Date(p.created_at).getTime() + 24 * HOUR_MS;
         const ms = expireAt - now + 500; // small grace
         if (ms <= 0 || ms > 25 * HOUR_MS) return null;
         return window.setTimeout(() => {
+          // expire: remove from "live" feed and refresh the private archive
           qc.invalidateQueries({ queryKey: activeKey });
+          qc.invalidateQueries({ queryKey: ["posts", "user-archive", user?.id] });
+          qc.invalidateQueries({ queryKey: ["posts", "feed"] });
         }, ms);
       })
       .filter((t): t is number => t !== null);
@@ -127,13 +130,22 @@ function ProfilePage() {
           </p>
         )}
 
-        <Link
-          to="/profile/edit"
-          className="nowa-tap mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          Editar perfil
-        </Link>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            to="/profile/edit"
+            className="nowa-tap inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Editar perfil
+          </Link>
+          <Link
+            to="/archive"
+            className="nowa-tap inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground"
+          >
+            <Lock className="h-3.5 w-3.5" />
+            Arquivo privado
+          </Link>
+        </div>
       </section>
 
       <div className="border-t border-border">
