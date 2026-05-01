@@ -21,6 +21,8 @@ export type Profile = {
   theme_bg: string | null;
   theme_ring: string | null;
   onboarded_at: string | null;
+  valid_reports_count: number;
+  invalid_reports_count: number;
 };
 
 type AuthContextValue = {
