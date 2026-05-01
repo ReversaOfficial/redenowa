@@ -221,16 +221,18 @@ export function CommentsPanel({
                     const optimistic = c.id.startsWith("optimistic-");
                     return (
                       <li key={c.id} className="flex gap-3">
-                        <Avatar
-                          src={c.author.avatar_url}
-                          name={c.author.display_name}
-                          size={36}
-                        />
+                        <Link to="/u/$handle" params={{ handle: c.author.handle }} onClick={onClose}>
+                          <Avatar
+                            src={c.author.avatar_url}
+                            name={c.author.display_name}
+                            size={36}
+                          />
+                        </Link>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline gap-2">
-                            <span className="text-sm font-bold text-foreground">
+                            <Link to="/u/$handle" params={{ handle: c.author.handle }} onClick={onClose} className="text-sm font-bold text-foreground hover:underline">
                               @{c.author.handle}
-                            </span>
+                            </Link>
                             <span className="text-[10px] text-muted-foreground">
                               {optimistic ? "enviando…" : timeAgo(c.created_at)}
                             </span>
