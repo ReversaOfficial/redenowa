@@ -16,11 +16,17 @@ const items: NavItem[] = [
   { to: "/profile", icon: User, label: "Perfil" },
 ];
 
-export function BottomNav() {
+export function BottomNav({ transparent = false }: { transparent?: boolean }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/85 backdrop-blur-xl">
+    <nav
+      className={`fixed bottom-0 left-0 right-0 z-40 border-t ${
+        transparent
+          ? "border-white/10 bg-black/55 backdrop-blur-xl"
+          : "border-border bg-background/85 backdrop-blur-xl"
+      }`}
+    >
       <div className="mx-auto flex max-w-md items-center justify-around px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2">
         {items.map((item) => {
           const active = path === item.to;
