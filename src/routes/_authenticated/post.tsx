@@ -296,7 +296,14 @@ function PostPage() {
       }
 
       const url = await uploadMedia(user.id, blob, ext);
-      await createPost({ authorId: user.id, mediaUrl: url, caption: parsed.data, mediaType });
+      const postId = await createPost({ authorId: user.id, mediaUrl: url, caption: parsed.data, mediaType });
+
+      // Server-side moderation (second layer) — runs async after post is created
+      // If flagged, RLS will hide the post from the feed automatically
+      moderatePost({ data: { postId, mediaUrl: url } }).catch((err) => {
+        console.warn("[moderation] server-side check failed:", err);
+      });
+
       qc.invalidateQueries({ queryKey: ["posts"] });
       toast.success("Publicado. O momento é agora.");
       navigate({ to: "/" });
