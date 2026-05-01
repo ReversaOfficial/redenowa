@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Avatar } from "./PostCard";
 import { CommentsPanel } from "./CommentsPanel";
+import { ReportDialog } from "./ReportDialog";
 import {
   fetchComments,
   fetchCommentsCount,
