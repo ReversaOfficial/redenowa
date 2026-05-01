@@ -86,6 +86,34 @@ function PublicProfilePage() {
     },
   });
 
+  // Realtime: refresh follow stats/button when this profile gains or loses
+  // followers, or when the viewer follows/unfollows anyone.
+  useEffect(() => {
+    if (!profile?.id) return;
+    const channel = supabase
+      .channel(`follows:${profile.id}:${user?.id ?? "anon"}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${profile.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["follow-state", profile.id] });
+        },
+      );
+    if (user?.id) {
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["follow-state", profile.id] });
+        },
+      );
+    }
+    channel.subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.id, user?.id, qc]);
+
   return (
     <MobileShell>
       <TopBar
