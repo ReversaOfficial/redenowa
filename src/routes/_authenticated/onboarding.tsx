@@ -35,6 +35,7 @@ const DEFAULT_RING = "#FF2E63";
 const schema = z.object({
   display_name: z.string().trim().min(2, "Informe seu nome").max(40),
   city: z.string().trim().min(2, "Informe sua cidade").max(60),
+  state: z.string().trim().min(2, "Informe seu estado").max(60),
   country: z.string().trim().min(2, "Informe seu país").max(60),
 });
 
