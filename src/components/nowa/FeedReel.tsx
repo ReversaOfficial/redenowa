@@ -561,7 +561,7 @@ const ReelSlide = memo(function ReelSlide({
 
         {post.caption && (
           <p className="mt-3 line-clamp-3 text-sm leading-snug text-white drop-shadow">
-            {post.caption}
+            <MentionText text={post.caption} className="[&_a]:text-white [&_a]:underline" />
           </p>
         )}
       </div>
