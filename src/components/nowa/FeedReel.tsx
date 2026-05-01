@@ -100,6 +100,20 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
   const lastTapRef = useRef(0);
   const videoElRef = useRef<HTMLVideoElement>(null);
 
+  const isVideo = post.media_type === "video";
+
+  // Autoplay / pause video based on active state
+  useEffect(() => {
+    const el = videoElRef.current;
+    if (!el || !isVideo) return;
+    if (active) {
+      el.play().catch(() => {});
+    } else {
+      el.pause();
+      el.currentTime = 0;
+    }
+  }, [active, isVideo]);
+
   const isMine = user?.id === post.author_id;
 
   // Comments count (live)
