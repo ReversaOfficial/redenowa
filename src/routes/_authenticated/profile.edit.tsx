@@ -58,9 +58,19 @@ function EditProfilePage() {
     setAvatarPreview(localUrl);
     setUploadingAvatar(true);
     try {
-      await uploadAvatarAndSave(user.id, blob);
+      const result = await uploadAvatarAndSave(user.id, blob);
       await refreshProfile();
-      toast.success("Avatar atualizado");
+      const kb = (n: number) => `${(n / 1024).toFixed(0)} KB`;
+      const saved = Math.max(
+        0,
+        Math.round((1 - result.finalSize / result.originalSize) * 100),
+      );
+      toast.success("Avatar atualizado", {
+        description:
+          saved > 0
+            ? `Otimizado: ${kb(result.originalSize)} → ${kb(result.finalSize)} (-${saved}%)`
+            : `Tamanho final: ${kb(result.finalSize)}`,
+      });
     } catch (e) {
       console.error(e);
       const msg = e instanceof Error ? e.message : "Falha ao salvar avatar";
