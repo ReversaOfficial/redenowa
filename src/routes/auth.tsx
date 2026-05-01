@@ -1,13 +1,21 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
+import { useEffect, useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/lib/auth-context";
 
+type Mode = "signin" | "signup";
+
+const searchSchema = z.object({
+  mode: z.enum(["signin", "signup"]).optional(),
+});
+
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search) => searchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Entrar — NOWA" },
@@ -17,15 +25,45 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Mode = "signin" | "signup";
+const signupSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Informe seu nome")
+    .max(60, "Nome muito longo"),
+  city: z
+    .string()
+    .trim()
+    .min(2, "Informe sua cidade")
+    .max(60, "Cidade muito longa"),
+  country: z
+    .string()
+    .trim()
+    .min(2, "Informe seu país")
+    .max(60, "País muito longo"),
+  email: z.string().trim().email("Email inválido").max(255),
+  password: z.string().min(6, "Senha deve ter ao menos 6 caracteres").max(72),
+});
+
+const signinSchema = z.object({
+  email: z.string().trim().email("Email inválido").max(255),
+  password: z.string().min(6, "Senha inválida").max(72),
+});
 
 function AuthPage() {
   const { session, loading } = useAuth();
-  const [mode, setMode] = useState<Mode>("signin");
+  const search = Route.useSearch();
+  const [mode, setMode] = useState<Mode>(search.mode ?? "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (search.mode) setMode(search.mode);
+  }, [search.mode]);
 
   if (!loading && session) return <Navigate to="/" />;
 
@@ -35,20 +73,42 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const parsed = signupSchema.safeParse({
+          name,
+          city,
+          country,
           email,
           password,
+        });
+        if (!parsed.success) {
+          toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
+          setBusy(false);
+          return;
+        }
+        const { error } = await supabase.auth.signUp({
+          email: parsed.data.email,
+          password: parsed.data.password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { display_name: name || email.split("@")[0] },
+            data: {
+              display_name: parsed.data.name,
+              city: parsed.data.city,
+              country: parsed.data.country,
+            },
           },
         });
         if (error) throw error;
         toast.success("Bem-vindo ao NOWA");
       } else {
+        const parsed = signinSchema.safeParse({ email, password });
+        if (!parsed.success) {
+          toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
+          setBusy(false);
+          return;
+        }
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: parsed.data.email,
+          password: parsed.data.password,
         });
         if (error) throw error;
       }
@@ -82,7 +142,17 @@ function AuthPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-6 pb-10 pt-[max(env(safe-area-inset-top),24px)]">
-        <header className="mt-6">
+        <div className="mt-2">
+          <Link
+            to="/welcome"
+            className="inline-flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Voltar
+          </Link>
+        </div>
+
+        <header className="mt-4">
           <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
             O momento é agora
           </p>
@@ -91,14 +161,17 @@ function AuthPage() {
             <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
           </h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            Sem filtro. Sem passado. Quem viu, viu.
+            {mode === "signup"
+              ? "Crie sua conta e comece a postar agora."
+              : "Entre para ver o que está rolando agora."}
           </p>
         </header>
 
-        <div className="mt-10 flex gap-1 rounded-full bg-card p-1">
+        <div className="mt-8 flex gap-1 rounded-full bg-card p-1">
           {(["signin", "signup"] as const).map((m) => (
             <button
               key={m}
+              type="button"
               onClick={() => setMode(m)}
               className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors ${
                 mode === m
@@ -113,14 +186,37 @@ function AuthPage() {
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-3">
           {mode === "signup" && (
-            <Field
-              label="Nome"
-              type="text"
-              value={name}
-              onChange={setName}
-              placeholder="Como quer ser chamado"
-              autoComplete="name"
-            />
+            <>
+              <Field
+                label="Nome"
+                type="text"
+                value={name}
+                onChange={setName}
+                placeholder="Como quer ser chamado"
+                autoComplete="name"
+                required
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <Field
+                  label="Cidade"
+                  type="text"
+                  value={city}
+                  onChange={setCity}
+                  placeholder="São Paulo"
+                  autoComplete="address-level2"
+                  required
+                />
+                <Field
+                  label="País"
+                  type="text"
+                  value={country}
+                  onChange={setCountry}
+                  placeholder="Brasil"
+                  autoComplete="country-name"
+                  required
+                />
+              </div>
+            </>
           )}
           <Field
             label="Email"
