@@ -88,6 +88,79 @@ export async function fetchActivePosts(myId: string | null): Promise<Post[]> {
   return shape((data ?? []) as unknown as RawPost[], myId);
 }
 
+/**
+ * Feed estilo TikTok:
+ *  - mistura aleatória de posts ativos (descoberta) com posts de quem você segue
+ *  - nenhum autor monopoliza: round-robin distribui 1 post por autor por ciclo
+ *  - proporção alvo: ~1 seguido a cada 3 (resto = descoberta aleatória)
+ */
+export async function fetchFeedPosts(myId: string | null): Promise<Post[]> {
+  const all = await fetchActivePosts(myId);
+  if (all.length === 0) return all;
+
+  let followingSet = new Set<string>();
+  if (myId) {
+    const { data: follows } = await supabase
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", myId);
+    followingSet = new Set((follows ?? []).map((f) => f.following_id));
+  }
+
+  // Round-robin por autor — máx 1 post por autor por "rodada"
+  const byAuthor = new Map<string, Post[]>();
+  for (const p of all) {
+    const arr = byAuthor.get(p.author_id) ?? [];
+    arr.push(p);
+    byAuthor.set(p.author_id, arr);
+  }
+  // embaralha posts dentro de cada autor
+  for (const arr of byAuthor.values()) shuffle(arr);
+
+  const followedAuthors = shuffle(
+    [...byAuthor.keys()].filter((id) => followingSet.has(id) && id !== myId)
+  );
+  const otherAuthors = shuffle(
+    [...byAuthor.keys()].filter((id) => !followingSet.has(id))
+  );
+
+  const out: Post[] = [];
+  let slot = 0;
+  // Continua até esvaziar todos os baldes
+  while (byAuthor.size > 0) {
+    // a cada 3 slots, 1 prioriza "seguindo" (se houver)
+    const useFollowed = slot % 3 === 0 && followedAuthors.length > 0;
+    const pool = useFollowed ? followedAuthors : otherAuthors;
+    const fallback = useFollowed ? otherAuthors : followedAuthors;
+    const authorId = pool.shift() ?? fallback.shift();
+    if (!authorId) break;
+    const bucket = byAuthor.get(authorId);
+    if (!bucket || bucket.length === 0) {
+      byAuthor.delete(authorId);
+      continue;
+    }
+    out.push(bucket.shift()!);
+    if (bucket.length > 0) {
+      // autor volta para o fim do seu pool para próxima rodada
+      (followingSet.has(authorId) ? followedAuthors : otherAuthors).push(
+        authorId
+      );
+    } else {
+      byAuthor.delete(authorId);
+    }
+    slot++;
+  }
+  return out;
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export type PublicProfile = {
   id: string;
   handle: string;
