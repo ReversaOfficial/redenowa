@@ -58,7 +58,7 @@ function FeedPage() {
   }
 
   return (
-    <MobileShell>
+    <MobileShell fullBleed>
       <FeedReel posts={posts} />
     </MobileShell>
   );
