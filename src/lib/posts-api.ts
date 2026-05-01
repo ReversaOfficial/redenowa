@@ -320,12 +320,13 @@ export async function createPost(args: {
   authorId: string;
   mediaUrl: string;
   caption: string;
+  mediaType?: "image" | "video";
 }) {
   const { error } = await supabase.from("posts").insert({
     author_id: args.authorId,
     media_url: args.mediaUrl,
     caption: args.caption || null,
-    media_type: "image",
+    media_type: args.mediaType ?? "image",
   });
   if (error) throw error;
 }

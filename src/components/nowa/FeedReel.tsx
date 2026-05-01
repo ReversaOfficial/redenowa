@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
-import { Heart, MessageCircle, Share2, UserPlus, UserCheck, Clock, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, UserPlus, UserCheck, Clock, Loader2, Volume2, VolumeX } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Avatar } from "./PostCard";
@@ -96,7 +96,23 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
   const qc = useQueryClient();
   const [showHeart, setShowHeart] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [muted, setMuted] = useState(true);
   const lastTapRef = useRef(0);
+  const videoElRef = useRef<HTMLVideoElement>(null);
+
+  const isVideo = post.media_type === "video";
+
+  // Autoplay / pause video based on active state
+  useEffect(() => {
+    const el = videoElRef.current;
+    if (!el || !isVideo) return;
+    if (active) {
+      el.play().catch(() => {});
+    } else {
+      el.pause();
+      el.currentTime = 0;
+    }
+  }, [active, isVideo]);
 
   const isMine = user?.id === post.author_id;
 
@@ -230,12 +246,25 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
 
   return (
     <div className="relative h-full w-full" onClick={handleTap}>
-      <img
-        src={post.media_url}
-        alt={post.caption ?? ""}
-        className="absolute inset-0 h-full w-full object-cover"
-        draggable={false}
-      />
+      {isVideo ? (
+        <video
+          ref={videoElRef}
+          src={post.media_url}
+          loop
+          muted={muted}
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 h-full w-full object-cover"
+          draggable={false}
+        />
+      ) : (
+        <img
+          src={post.media_url}
+          alt={post.caption ?? ""}
+          className="absolute inset-0 h-full w-full object-cover"
+          draggable={false}
+        />
+      )}
       {/* gradiente para legibilidade */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70" />
 
@@ -314,6 +343,24 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
         >
           <Share2 className="h-8 w-8 text-white drop-shadow-lg" strokeWidth={2} />
         </button>
+
+        {isVideo && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMuted((m) => !m);
+            }}
+            className="flex flex-col items-center gap-1"
+            aria-label={muted ? "Ativar som" : "Silenciar"}
+          >
+            {muted ? (
+              <VolumeX className="h-7 w-7 text-white drop-shadow-lg" strokeWidth={2} />
+            ) : (
+              <Volume2 className="h-7 w-7 text-white drop-shadow-lg" strokeWidth={2} />
+            )}
+          </button>
+        )}
       </div>
 
       {/* rodapé com autor + caption + seguir */}
