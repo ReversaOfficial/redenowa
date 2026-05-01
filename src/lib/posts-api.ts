@@ -500,6 +500,99 @@ export async function addComment(postId: string, content: string) {
   return data.id as string;
 }
 
+// ── Mention detection & notification ──
+
+const mentionRegex = /@([a-z0-9_]{2,20})/gi;
+
+function extractMentions(text: string): string[] {
+  const handles: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = mentionRegex.exec(text)) !== null) {
+    handles.push(m[1].toLowerCase());
+  }
+  return [...new Set(handles)];
+}
+
+async function notifyMentions(opts: {
+  text: string;
+  actorId: string;
+  postId: string;
+  commentId?: string;
+}) {
+  const handles = extractMentions(opts.text);
+  if (handles.length === 0) return;
+  // Resolve handles to user ids
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, handle")
+    .in("handle", handles);
+  if (!profiles || profiles.length === 0) return;
+  const rows = profiles
+    .filter((p) => p.id !== opts.actorId)
+    .map((p) => ({
+      user_id: p.id,
+      actor_id: opts.actorId,
+      type: "mention" as const,
+      post_id: opts.postId,
+      comment_id: opts.commentId ?? null,
+    }));
+  if (rows.length > 0) {
+    await supabase.from("notifications").insert(rows);
+  }
+}
+
+// ── Notifications API ──
+
+export type Notification = {
+  id: string;
+  user_id: string;
+  actor_id: string;
+  type: string;
+  post_id: string | null;
+  comment_id: string | null;
+  read: boolean;
+  created_at: string;
+  actor: {
+    handle: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
+};
+
+type RawNotification = Omit<Notification, "actor"> & {
+  profiles: Notification["actor"] | null;
+};
+
+export async function fetchNotifications(): Promise<Notification[]> {
+  const { data, error } = await supabase
+    .from("notifications")
+    .select(
+      "id, user_id, actor_id, type, post_id, comment_id, read, created_at, profiles!notifications_actor_id_fkey(handle, display_name, avatar_url)"
+    )
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return ((data ?? []) as unknown as RawNotification[])
+    .filter((n) => n.profiles)
+    .map((n) => ({ ...n, actor: n.profiles!, profiles: undefined } as unknown as Notification));
+}
+
+export async function fetchUnreadCount(): Promise<number> {
+  const { count } = await supabase
+    .from("notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("read", false);
+  return count ?? 0;
+}
+
+export async function markAllRead() {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read: true })
+    .eq("read", false);
+  if (error) throw error;
+}
+
 export async function deleteComment(commentId: string) {
   const { error } = await supabase
     .from("comments")
