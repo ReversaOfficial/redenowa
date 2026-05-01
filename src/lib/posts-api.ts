@@ -322,14 +322,15 @@ export async function createPost(args: {
   mediaUrl: string;
   caption: string;
   mediaType?: "image" | "video";
-}) {
-  const { error } = await supabase.from("posts").insert({
+}): Promise<string> {
+  const { data, error } = await supabase.from("posts").insert({
     author_id: args.authorId,
     media_url: args.mediaUrl,
     caption: args.caption || null,
     media_type: args.mediaType ?? "image",
-  });
+  }).select("id").single();
   if (error) throw error;
+  return data.id;
 }
 
 export async function uploadAvatarAndSave(
