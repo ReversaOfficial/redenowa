@@ -21,6 +21,7 @@ import {
 } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
 import { readableTextOn, withAlpha } from "@/lib/color";
+import { ReportBadges } from "@/components/nowa/ReportBadges";
 
 export const Route = createFileRoute("/_authenticated/u/$handle")({
   head: ({ params }) => ({
