@@ -323,7 +323,7 @@ function AuthPage() {
         </button>
 
         <p className="mt-auto pt-10 text-center text-[11px] text-muted-foreground">
-          Poste agora ou perca.
+          Compartilhe seus momentos.
         </p>
       </div>
     </div>
