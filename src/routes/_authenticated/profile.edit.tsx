@@ -248,7 +248,7 @@ function EditProfilePage() {
           )}
         </div>
 
-        {/* Cidade / País */}
+        {/* Cidade / Estado */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <label
@@ -270,22 +270,42 @@ function EditProfilePage() {
           </div>
           <div className="space-y-2">
             <label
-              htmlFor="country"
+              htmlFor="state"
               className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
             >
-              País
+              Estado
             </label>
             <input
-              id="country"
+              id="state"
               type="text"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
+              value={state}
+              onChange={(e) => setState(e.target.value)}
               maxLength={LOC_MAX}
-              autoComplete="country-name"
+              autoComplete="address-level1"
               className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:border-primary"
-              placeholder="Brasil"
+              placeholder="Rio Grande do Sul"
             />
           </div>
+        </div>
+
+        {/* País */}
+        <div className="space-y-2">
+          <label
+            htmlFor="country"
+            className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+          >
+            País
+          </label>
+          <input
+            id="country"
+            type="text"
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            maxLength={LOC_MAX}
+            autoComplete="country-name"
+            className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:border-primary"
+            placeholder="Brasil"
+          />
         </div>
 
         {/* Bio */}
