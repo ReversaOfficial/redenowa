@@ -12,6 +12,7 @@ import {
   Video,
   Square,
   Heart,
+  MicOff,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
