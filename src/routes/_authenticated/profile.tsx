@@ -167,6 +167,13 @@ function ProfilePage() {
           </p>
         )}
 
+        {profile && (
+          <ReportBadges
+            validCount={profile.valid_reports_count}
+            invalidCount={profile.invalid_reports_count}
+          />
+        )}
+
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
             to="/profile/edit"
