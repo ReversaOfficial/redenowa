@@ -144,6 +144,17 @@ function PublicProfilePage() {
         },
       );
     }
+    if (user?.id) {
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "blocks", filter: `blocker_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["block-state", profile.id] });
+          qc.invalidateQueries({ queryKey: ["posts"] });
+          qc.invalidateQueries({ queryKey: ["feed"] });
+        },
+      );
+    }
     channel.subscribe();
     return () => {
       supabase.removeChannel(channel);
