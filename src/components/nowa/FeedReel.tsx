@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
-import { Heart, MessageCircle, Share2, UserPlus, UserCheck, Clock } from "lucide-react";
+import { Heart, MessageCircle, Share2, UserPlus, UserCheck, Clock, Loader2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Avatar } from "./PostCard";
@@ -141,6 +141,7 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: followKey });
       const prev = qc.getQueryData<FollowState>(followKey);
+      const wasFollowing = !!prev?.is_following;
       if (prev) {
         qc.setQueryData<FollowState>(followKey, {
           ...prev,
@@ -148,11 +149,25 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
           followers: prev.followers + (prev.is_following ? -1 : 1),
         });
       }
-      return { prev };
+      return { prev, wasFollowing };
     },
-    onError: (_e, _v, ctx) => {
+    onSuccess: (_d, _v, ctx) => {
+      if (ctx?.wasFollowing) {
+        toast(`Você deixou de seguir @${post.author.handle}`);
+      } else {
+        toast.success(`Seguindo @${post.author.handle}`, {
+          description: "Você verá mais posts dele no seu feed.",
+        });
+      }
+    },
+    onError: (e, _v, ctx) => {
       if (ctx?.prev) qc.setQueryData(followKey, ctx.prev);
-      toast.error("Não foi possível atualizar");
+      toast.error(
+        ctx?.wasFollowing
+          ? "Não foi possível deixar de seguir"
+          : "Não foi possível seguir agora",
+        { description: e instanceof Error ? e.message : "Tente novamente em instantes." }
+      );
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["follow-state", post.author_id] });
@@ -293,13 +308,16 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
                 followMutation.mutate();
               }}
               disabled={followMutation.isPending || !follow}
-              className={`nowa-tap ml-auto inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors disabled:opacity-60 ${
+              aria-busy={followMutation.isPending}
+              className={`nowa-tap ml-auto inline-flex min-w-[88px] items-center justify-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all disabled:opacity-70 ${
                 follow?.is_following
                   ? "bg-white/15 text-white backdrop-blur"
                   : "bg-primary text-primary-foreground"
-              }`}
+              } ${followMutation.isPending ? "scale-95" : ""}`}
             >
-              {follow?.is_following ? (
+              {followMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2.5} />
+              ) : follow?.is_following ? (
                 <>
                   <UserCheck className="h-3.5 w-3.5" strokeWidth={2.5} />
                   Seguindo
