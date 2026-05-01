@@ -79,6 +79,7 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [state, setState] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [busy, setBusy] = useState(false);
 
