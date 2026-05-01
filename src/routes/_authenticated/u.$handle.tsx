@@ -230,3 +230,29 @@ function PublicProfilePage() {
     </MobileShell>
   );
 }
+
+function Stat({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+}) {
+  return (
+    <div className="text-center">
+      <p
+        className={`text-xl font-bold tabular-nums ${
+          accent ? "text-primary" : "text-foreground"
+        }`}
+      >
+        {value}
+      </p>
+      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
+        {label}
+      </p>
+    </div>
+  );
+}
+
