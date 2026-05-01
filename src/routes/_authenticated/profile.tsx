@@ -1,17 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LogOut, Grid3x3, Loader2, Pencil } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { LogOut, Grid3x3, Loader2, Pencil, Clock } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { TopBar } from "@/components/nowa/TopBar";
 import { Avatar } from "@/components/nowa/PostCard";
 import { fetchUserPosts, timeRemaining, useMinuteTick } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/integrations/supabase/client";
+
+const HOUR_MS = 60 * 60 * 1000;
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
     meta: [
       { title: "Perfil — NOWA" },
-      { name: "description", content: "Seu perfil no NOWA." },
+      { name: "description", content: "Seu perfil no NOWA — só o agora." },
     ],
   }),
   component: ProfilePage,
@@ -19,18 +23,71 @@ export const Route = createFileRoute("/_authenticated/profile")({
 
 function ProfilePage() {
   const { profile, user, signOut } = useAuth();
+  const qc = useQueryClient();
+  // re-render every minute so countdowns update
   useMinuteTick();
 
-  const { data: active } = useQuery({
-    queryKey: ["posts", "user-active", user?.id],
+  const activeKey = ["posts", "user-active", user?.id] as const;
+  const { data: active, isLoading } = useQuery({
+    queryKey: activeKey,
     queryFn: () => fetchUserPosts(user!.id, true),
     enabled: !!user,
+    // 24h cutoff is time-based; never trust cached data for long
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
-  const { data: archive } = useQuery({
-    queryKey: ["posts", "user-archive", user?.id],
-    queryFn: () => fetchUserPosts(user!.id, false),
-    enabled: !!user,
-  });
+
+  // Realtime: when the user creates or removes a post, refresh immediately.
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(`profile-posts:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "posts",
+          filter: `author_id=eq.${user.id}`,
+        },
+        () => qc.invalidateQueries({ queryKey: activeKey }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, qc]);
+
+  // Schedule precise refetches at each post's 24h boundary so items disappear
+  // exactly when they expire (covers idle tabs and "virar o dia").
+  useEffect(() => {
+    if (!active || active.length === 0) return;
+    const now = Date.now();
+    const timers = active
+      .map((p) => {
+        const expireAt = new Date(p.created_at).getTime() + 24 * HOUR_MS;
+        const ms = expireAt - now + 500; // small grace
+        if (ms <= 0 || ms > 25 * HOUR_MS) return null;
+        return window.setTimeout(() => {
+          qc.invalidateQueries({ queryKey: activeKey });
+        }, ms);
+      })
+      .filter((t): t is number => t !== null);
+    return () => {
+      timers.forEach((t) => window.clearTimeout(t));
+    };
+  }, [active, qc]);
+
+  // When the tab becomes visible again, recheck — handles overnight idling.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        qc.invalidateQueries({ queryKey: activeKey });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [qc]);
 
   return (
     <MobileShell>
@@ -64,14 +121,10 @@ function ProfilePage() {
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-2 rounded-2xl bg-card p-4">
-          <Stat label="ao vivo" value={active?.length ?? 0} accent />
-          <Stat label="arquivo" value={archive?.length ?? 0} />
-          <Stat label="seguidores" value={0} />
-        </div>
-
         {profile?.bio && (
-          <p className="mt-4 text-sm leading-snug text-foreground">{profile.bio}</p>
+          <p className="mt-4 text-sm leading-snug text-foreground">
+            {profile.bio}
+          </p>
         )}
 
         <Link
@@ -87,22 +140,23 @@ function ProfilePage() {
         <div className="flex items-center gap-2 border-b-2 border-foreground px-5 py-3">
           <Grid3x3 className="h-4 w-4" strokeWidth={2.5} />
           <span className="text-sm font-semibold">Ao vivo agora</span>
-          <span className="ml-auto text-xs text-muted-foreground">
-            {active?.length ?? 0} posts
+          <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            últimas 24h
           </span>
         </div>
 
-        {active === undefined ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : active.length === 0 ? (
+        ) : !active || active.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <p className="text-base font-semibold text-foreground">
               Nada ao vivo agora.
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Poste agora ou perca.
+              Poste agora ou o momento passa.
             </p>
           </div>
         ) : (
@@ -127,30 +181,5 @@ function ProfilePage() {
         )}
       </div>
     </MobileShell>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  accent = false,
-}: {
-  label: string;
-  value: number;
-  accent?: boolean;
-}) {
-  return (
-    <div className="text-center">
-      <p
-        className={`text-xl font-bold tabular-nums ${
-          accent ? "text-primary" : "text-foreground"
-        }`}
-      >
-        {value}
-      </p>
-      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
-        {label}
-      </p>
-    </div>
   );
 }
