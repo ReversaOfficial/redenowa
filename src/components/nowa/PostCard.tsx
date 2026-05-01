@@ -22,6 +22,7 @@ function postCardAreEqual(prev: { post: Post }, next: { post: Post }): boolean {
     a.media_url === b.media_url &&
     a.caption === b.caption &&
     a.created_at === b.created_at &&
+    a.flagged === b.flagged &&
     a.author.handle === b.author.handle &&
     a.author.display_name === b.author.display_name &&
     a.author.avatar_url === b.author.avatar_url

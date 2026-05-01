@@ -62,7 +62,7 @@ function FeedPage() {
   const fresh = useMemo(() => {
     if (!posts) return posts;
     const cutoff = Date.now() - POST_TTL_MS;
-    return posts.filter((p) => new Date(p.created_at).getTime() > cutoff);
+    return posts.filter((p) => new Date(p.created_at).getTime() > cutoff && !p.flagged);
     // tick é dependência intencional para reavaliar a cada minuto
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [posts, tick]);

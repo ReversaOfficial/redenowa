@@ -11,6 +11,8 @@ export type Post = {
   media_type: "image" | "video";
   caption: string | null;
   created_at: string; // ISO
+  flagged: boolean;
+  flagged_reason: string | null;
   // joined
   author: {
     id: string;
@@ -50,6 +52,8 @@ type RawPost = {
   media_type: string;
   caption: string | null;
   created_at: string;
+  flagged: boolean;
+  flagged_reason: string | null;
   profiles: {
     id: string;
     handle: string;
@@ -69,6 +73,8 @@ function shape(rows: RawPost[], myId: string | null): Post[] {
       media_type: (r.media_type as "image" | "video") ?? "image",
       caption: r.caption,
       created_at: r.created_at,
+      flagged: r.flagged ?? false,
+      flagged_reason: r.flagged_reason ?? null,
       author: r.profiles!,
       likes_count: r.likes.length,
       liked_by_me: myId ? r.likes.some((l) => l.user_id === myId) : false,
@@ -90,7 +96,7 @@ export async function fetchActivePosts(myId: string | null): Promise<Post[]> {
   let q = supabase
     .from("posts")
     .select(
-      "id, author_id, media_url, media_type, caption, created_at, profiles!posts_author_id_fkey(id, handle, display_name, avatar_url), likes(user_id)"
+      "id, author_id, media_url, media_type, caption, created_at, flagged, flagged_reason, profiles!posts_author_id_fkey(id, handle, display_name, avatar_url), likes(user_id)"
     )
     .gt("created_at", cutoff)
     .order("created_at", { ascending: false })
@@ -269,7 +275,7 @@ export async function fetchUserPosts(
   let q = supabase
     .from("posts")
     .select(
-      "id, author_id, media_url, media_type, caption, created_at, profiles!posts_author_id_fkey(id, handle, display_name, avatar_url), likes(user_id)"
+      "id, author_id, media_url, media_type, caption, created_at, flagged, flagged_reason, profiles!posts_author_id_fkey(id, handle, display_name, avatar_url), likes(user_id)"
     )
     .eq("author_id", userId)
     .order("created_at", { ascending: false })
@@ -322,14 +328,15 @@ export async function createPost(args: {
   mediaUrl: string;
   caption: string;
   mediaType?: "image" | "video";
-}) {
-  const { error } = await supabase.from("posts").insert({
+}): Promise<string> {
+  const { data, error } = await supabase.from("posts").insert({
     author_id: args.authorId,
     media_url: args.mediaUrl,
     caption: args.caption || null,
     media_type: args.mediaType ?? "image",
-  });
+  }).select("id").single();
   if (error) throw error;
+  return data.id;
 }
 
 export async function uploadAvatarAndSave(
