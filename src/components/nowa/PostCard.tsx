@@ -1,4 +1,4 @@
-import { Heart, MessageCircle, Share2, Bookmark, Clock } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,13 +6,11 @@ import { toast } from "sonner";
 import {
   toggleLike,
   timeAgo,
-  timeRemaining,
-  useMinuteTick,
   type Post,
 } from "@/lib/posts-api";
+import { ExpiryCountdown } from "./ExpiryCountdown";
 
 export function PostCard({ post }: { post: Post }) {
-  useMinuteTick();
   const qc = useQueryClient();
 
   const likeMutation = useMutation({
@@ -67,10 +65,7 @@ export function PostCard({ post }: { post: Post }) {
             </p>
           </div>
         </Link>
-        <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[10px] font-medium text-primary">
-          <Clock className="h-3 w-3" strokeWidth={2.5} />
-          {timeRemaining(post.created_at)}
-        </span>
+        <ExpiryCountdown createdAt={post.created_at} />
       </header>
 
       <div className="relative overflow-hidden bg-card">
