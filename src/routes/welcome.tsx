@@ -98,7 +98,7 @@ function WelcomePage() {
         </motion.div>
 
         <p className="mt-8 text-center text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          Poste agora ou perca.
+          Compartilhe seus momentos.
         </p>
       </main>
     </div>
