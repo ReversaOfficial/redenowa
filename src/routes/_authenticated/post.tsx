@@ -297,7 +297,7 @@ function PostPage() {
       }
 
       const url = await uploadMedia(user.id, blob, ext);
-      const postId = await createPost({ authorId: user.id, mediaUrl: url, caption: parsed.data, mediaType });
+      const postId = await createPost({ authorId: user.id, mediaUrl: url, caption: parsed.data, mediaType, closeFriendsOnly });
 
       // Server-side moderation (second layer) — runs async after post is created
       // If flagged, RLS will hide the post from the feed automatically
