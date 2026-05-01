@@ -182,6 +182,10 @@ export type PublicProfile = {
   display_name: string;
   avatar_url: string | null;
   bio: string | null;
+  city: string | null;
+  country: string | null;
+  theme_bg: string | null;
+  theme_ring: string | null;
 };
 
 export async function fetchProfileByHandle(
@@ -189,7 +193,9 @@ export async function fetchProfileByHandle(
 ): Promise<PublicProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, handle, display_name, avatar_url, bio")
+    .select(
+      "id, handle, display_name, avatar_url, bio, city, country, theme_bg, theme_ring",
+    )
     .eq("handle", handle)
     .maybeSingle();
   if (error) throw error;

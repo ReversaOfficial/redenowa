@@ -15,6 +15,11 @@ export type Profile = {
   display_name: string;
   avatar_url: string | null;
   bio: string | null;
+  city: string | null;
+  country: string | null;
+  theme_bg: string | null;
+  theme_ring: string | null;
+  onboarded_at: string | null;
 };
 
 type AuthContextValue = {
@@ -31,7 +36,9 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, handle, display_name, avatar_url, bio")
+    .select(
+      "id, handle, display_name, avatar_url, bio, city, country, theme_bg, theme_ring, onboarded_at",
+    )
     .eq("id", userId)
     .maybeSingle();
   if (error) {

@@ -152,6 +152,9 @@ export type Database = {
           display_name: string
           handle: string
           id: string
+          onboarded_at: string | null
+          theme_bg: string | null
+          theme_ring: string | null
           updated_at: string
         }
         Insert: {
@@ -163,6 +166,9 @@ export type Database = {
           display_name: string
           handle: string
           id: string
+          onboarded_at?: string | null
+          theme_bg?: string | null
+          theme_ring?: string | null
           updated_at?: string
         }
         Update: {
@@ -174,6 +180,9 @@ export type Database = {
           display_name?: string
           handle?: string
           id?: string
+          onboarded_at?: string | null
+          theme_bg?: string | null
+          theme_ring?: string | null
           updated_at?: string
         }
         Relationships: []
