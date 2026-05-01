@@ -12,9 +12,18 @@ import {
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { z } from "zod";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { useAuth } from "@/lib/auth-context";
 import { createPost, uploadMedia } from "@/lib/posts-api";
+
+const CAPTION_MIN = 3;
+const CAPTION_MAX = 80;
+const captionSchema = z
+  .string()
+  .trim()
+  .min(CAPTION_MIN, `Mínimo ${CAPTION_MIN} caracteres`)
+  .max(CAPTION_MAX, `Máximo ${CAPTION_MAX} caracteres`);
 
 export const Route = createFileRoute("/_authenticated/post")({
   head: () => ({
@@ -116,11 +125,16 @@ function PostPage() {
 
   async function publish() {
     if (!snap || !user || publishing) return;
+    const parsed = captionSchema.safeParse(caption);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Legenda inválida");
+      return;
+    }
     setPublishing(true);
     try {
       const blob = dataURLtoBlob(snap);
       const url = await uploadMedia(user.id, blob, "jpg");
-      await createPost({ authorId: user.id, mediaUrl: url, caption: caption.trim() });
+      await createPost({ authorId: user.id, mediaUrl: url, caption: parsed.data });
       qc.invalidateQueries({ queryKey: ["posts"] });
       toast.success("Publicado. O momento é agora.");
       navigate({ to: "/" });
@@ -241,36 +255,63 @@ function PostPage() {
                 className="aspect-[4/5] w-full bg-black object-cover"
               />
               <div className="px-4 py-4">
-                <label className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  Legenda (opcional)
+                <label
+                  htmlFor="caption"
+                  className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground"
+                >
+                  Legenda <span className="text-primary">*</span>
                 </label>
                 <textarea
+                  id="caption"
                   value={caption}
-                  onChange={(e) => setCaption(e.target.value.slice(0, 140))}
-                  placeholder="Diga algo sobre este momento..."
-                  rows={3}
-                  className="mt-2 w-full resize-none rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                  onChange={(e) => setCaption(e.target.value.slice(0, CAPTION_MAX))}
+                  placeholder={`Diga algo curto (mín ${CAPTION_MIN}, máx ${CAPTION_MAX})…`}
+                  rows={2}
+                  maxLength={CAPTION_MAX}
+                  required
+                  aria-invalid={
+                    caption.trim().length > 0 &&
+                    caption.trim().length < CAPTION_MIN
+                  }
+                  className="mt-2 w-full resize-none rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none aria-[invalid=true]:border-destructive"
                 />
                 <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
-                  <span>Sem edição. Sem cortes.</span>
-                  <span className="tabular-nums">{caption.length}/140</span>
+                  <span>
+                    {caption.trim().length === 0
+                      ? "Obrigatório. Sem edição, sem cortes."
+                      : caption.trim().length < CAPTION_MIN
+                      ? `Faltam ${CAPTION_MIN - caption.trim().length} caracteres`
+                      : "Pronto para publicar."}
+                  </span>
+                  <span
+                    className={`tabular-nums ${
+                      caption.length >= CAPTION_MAX ? "text-destructive" : ""
+                    }`}
+                  >
+                    {caption.length}/{CAPTION_MAX}
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="border-t border-border bg-background px-4 py-3 pb-[max(env(safe-area-inset-bottom),12px)]">
-              <button
-                onClick={publish}
-                disabled={publishing}
-                className="nowa-tap flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-70"
-              >
-                {publishing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" strokeWidth={2.5} />
-                )}
-                {publishing ? "Publicando..." : "Publicar agora"}
-              </button>
+              {(() => {
+                const valid = captionSchema.safeParse(caption).success;
+                return (
+                  <button
+                    onClick={publish}
+                    disabled={publishing || !valid}
+                    className="nowa-tap flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] transition-opacity disabled:opacity-50"
+                  >
+                    {publishing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" strokeWidth={2.5} />
+                    )}
+                    {publishing ? "Publicando..." : "Publicar agora"}
+                  </button>
+                );
+              })()}
               <p className="mt-2 text-center text-[11px] text-muted-foreground">
                 Este post some em 24h. Quem viu, viu.
               </p>
