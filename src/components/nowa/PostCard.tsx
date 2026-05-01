@@ -1,5 +1,6 @@
 import { Heart, MessageCircle, Share2, Bookmark, Clock } from "lucide-react";
 import { motion } from "framer-motion";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -48,7 +49,11 @@ export function PostCard({ post }: { post: Post }) {
   return (
     <article className="border-b border-border bg-background pb-4">
       <header className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
+        <Link
+          to="/u/$handle"
+          params={{ handle: post.author.handle }}
+          className="flex items-center gap-3"
+        >
           <Avatar
             src={post.author.avatar_url}
             name={post.author.display_name}
@@ -61,7 +66,7 @@ export function PostCard({ post }: { post: Post }) {
               @{post.author.handle} · {timeAgo(post.created_at)}
             </p>
           </div>
-        </div>
+        </Link>
         <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[10px] font-medium text-primary">
           <Clock className="h-3 w-3" strokeWidth={2.5} />
           {timeRemaining(post.created_at)}
@@ -120,7 +125,13 @@ export function PostCard({ post }: { post: Post }) {
 
       {post.caption && (
         <p className="px-4 pt-2 text-sm leading-snug text-foreground">
-          <span className="font-semibold">{post.author.handle} </span>
+          <Link
+            to="/u/$handle"
+            params={{ handle: post.author.handle }}
+            className="font-semibold"
+          >
+            {post.author.handle}
+          </Link>{" "}
           {post.caption}
         </p>
       )}

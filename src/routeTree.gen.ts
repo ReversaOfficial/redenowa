@@ -15,6 +15,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPostRouteImport } from './routes/_authenticated/post'
 import { Route as AuthenticatedArchiveRouteImport } from './routes/_authenticated/archive'
+import { Route as AuthenticatedUHandleRouteImport } from './routes/_authenticated/u.$handle'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -45,6 +46,11 @@ const AuthenticatedArchiveRoute = AuthenticatedArchiveRouteImport.update({
   path: '/archive',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedUHandleRoute = AuthenticatedUHandleRouteImport.update({
+  id: '/u/$handle',
+  path: '/u/$handle',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/archive': typeof AuthenticatedArchiveRoute
   '/post': typeof AuthenticatedPostRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/u/$handle': typeof AuthenticatedUHandleRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/post': typeof AuthenticatedPostRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/': typeof AuthenticatedIndexRoute
+  '/u/$handle': typeof AuthenticatedUHandleRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -68,12 +76,13 @@ export interface FileRoutesById {
   '/_authenticated/post': typeof AuthenticatedPostRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/u/$handle': typeof AuthenticatedUHandleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/archive' | '/post' | '/profile'
+  fullPaths: '/' | '/auth' | '/archive' | '/post' | '/profile' | '/u/$handle'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/archive' | '/post' | '/profile' | '/'
+  to: '/auth' | '/archive' | '/post' | '/profile' | '/' | '/u/$handle'
   id:
     | '__root__'
     | '/_authenticated'
@@ -82,6 +91,7 @@ export interface FileRouteTypes {
     | '/_authenticated/post'
     | '/_authenticated/profile'
     | '/_authenticated/'
+    | '/_authenticated/u/$handle'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -133,6 +143,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedArchiveRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/u/$handle': {
+      id: '/_authenticated/u/$handle'
+      path: '/u/$handle'
+      fullPath: '/u/$handle'
+      preLoaderRoute: typeof AuthenticatedUHandleRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -141,6 +158,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPostRoute: typeof AuthenticatedPostRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedUHandleRoute: typeof AuthenticatedUHandleRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -148,6 +166,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPostRoute: AuthenticatedPostRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedUHandleRoute: AuthenticatedUHandleRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
