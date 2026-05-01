@@ -469,6 +469,17 @@ const ReelSlide = memo(function ReelSlide({
           <Share2 className="h-8 w-8 text-white drop-shadow-lg" strokeWidth={2} />
         </button>
 
+        {!isMine && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setReportOpen(true); }}
+            className="flex flex-col items-center gap-1"
+            aria-label="Denunciar"
+          >
+            <Flag className="h-7 w-7 text-white drop-shadow-lg" strokeWidth={2} />
+          </button>
+        )}
+
         {isVideo && (
           <button
             type="button"
