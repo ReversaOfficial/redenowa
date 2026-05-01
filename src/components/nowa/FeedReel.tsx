@@ -318,11 +318,11 @@ const ReelSlide = memo(function ReelSlide({
   // Video ended → advance to next post in group
   useEffect(() => {
     const el = videoElRef.current;
-    if (!el || !isVideo || !active || !hasMultiple) return;
+    if (!el || !isVideo || !active) return;
     const handler = () => onVideoEnded?.();
     el.addEventListener("ended", handler);
     return () => el.removeEventListener("ended", handler);
-  }, [isVideo, active, hasMultiple, onVideoEnded]);
+  }, [isVideo, active, onVideoEnded]);
 
   // Comments count
   const { data: commentsCount = 0 } = useQuery({
