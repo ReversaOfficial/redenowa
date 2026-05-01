@@ -113,6 +113,7 @@ function PostPage() {
   const [retryToken, setRetryToken] = useState(0);
   const [recording, setRecording] = useState(false);
   const [recordMs, setRecordMs] = useState(0);
+  const [micDenied, setMicDenied] = useState(false);
 
   // Start camera
   useEffect(() => {
