@@ -159,11 +159,13 @@ export type Database = {
           display_name: string
           handle: string
           id: string
+          invalid_reports_count: number
           onboarded_at: string | null
           state: string | null
           theme_bg: string | null
           theme_ring: string | null
           updated_at: string
+          valid_reports_count: number
         }
         Insert: {
           avatar_url?: string | null
@@ -175,11 +177,13 @@ export type Database = {
           display_name: string
           handle: string
           id: string
+          invalid_reports_count?: number
           onboarded_at?: string | null
           state?: string | null
           theme_bg?: string | null
           theme_ring?: string | null
           updated_at?: string
+          valid_reports_count?: number
         }
         Update: {
           avatar_url?: string | null
@@ -191,11 +195,13 @@ export type Database = {
           display_name?: string
           handle?: string
           id?: string
+          invalid_reports_count?: number
           onboarded_at?: string | null
           state?: string | null
           theme_bg?: string | null
           theme_ring?: string | null
           updated_at?: string
+          valid_reports_count?: number
         }
         Relationships: []
       }
