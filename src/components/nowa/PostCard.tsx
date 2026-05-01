@@ -65,10 +65,7 @@ export function PostCard({ post }: { post: Post }) {
             </p>
           </div>
         </Link>
-        <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[10px] font-medium text-primary">
-          <Clock className="h-3 w-3" strokeWidth={2.5} />
-          {timeRemaining(post.created_at)}
-        </span>
+        <ExpiryCountdown createdAt={post.created_at} />
       </header>
 
       <div className="relative overflow-hidden bg-card">
