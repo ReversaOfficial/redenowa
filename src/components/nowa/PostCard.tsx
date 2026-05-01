@@ -69,12 +69,22 @@ export function PostCard({ post }: { post: Post }) {
       </header>
 
       <div className="relative overflow-hidden bg-card">
-        <img
-          src={post.media_url}
-          alt={post.caption ?? ""}
-          loading="lazy"
-          className="aspect-[4/5] w-full object-cover"
-        />
+        {post.media_type === "video" ? (
+          <video
+            src={post.media_url}
+            controls
+            playsInline
+            preload="metadata"
+            className="aspect-[4/5] w-full object-cover"
+          />
+        ) : (
+          <img
+            src={post.media_url}
+            alt={post.caption ?? ""}
+            loading="lazy"
+            className="aspect-[4/5] w-full object-cover"
+          />
+        )}
       </div>
 
       <div className="flex items-center justify-between px-4 pt-3">

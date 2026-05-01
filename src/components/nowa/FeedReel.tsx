@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
-import { Heart, MessageCircle, Share2, UserPlus, UserCheck, Clock, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, UserPlus, UserCheck, Clock, Loader2, Volume2, VolumeX } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Avatar } from "./PostCard";
