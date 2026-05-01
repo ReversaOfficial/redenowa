@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { FeedReel } from "@/components/nowa/FeedReel";
 import { fetchFeedPosts, useMinuteTick } from "@/lib/posts-api";
@@ -20,16 +21,59 @@ export const Route = createFileRoute("/_authenticated/")({
   component: FeedPage,
 });
 
+const POST_TTL_MS = 24 * 60 * 60 * 1000;
+
 function FeedPage() {
   const { user } = useAuth();
-  useMinuteTick();
+  const tick = useMinuteTick();
+  const qc = useQueryClient();
+  const queryKey = ["posts", "feed", user?.id ?? null];
+
   const { data: posts, isLoading } = useQuery({
-    queryKey: ["posts", "feed", user?.id ?? null],
+    queryKey,
     queryFn: () => fetchFeedPosts(user?.id ?? null),
-    refetchInterval: 60_000,
-    // staleTime alto evita re-embaralhar enquanto o usuário rola
-    staleTime: 5 * 60_000,
+    // Refetch agressivo para garantir feed sempre fresco (últimas 24h)
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    staleTime: 15_000,
   });
+
+  // Refetch imediato ao voltar a aba ou reconectar (defensivo).
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        qc.invalidateQueries({ queryKey });
+      }
+    };
+    const onOnline = () => qc.invalidateQueries({ queryKey });
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qc, user?.id]);
+
+  // Filtra posts expirados em tempo real entre refetches.
+  // Reavaliado a cada minuto via `tick` (useMinuteTick).
+  const fresh = useMemo(() => {
+    if (!posts) return posts;
+    const cutoff = Date.now() - POST_TTL_MS;
+    return posts.filter((p) => new Date(p.created_at).getTime() > cutoff);
+    // tick é dependência intencional para reavaliar a cada minuto
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posts, tick]);
+
+  // Quando posts expirarem localmente, dispara refetch para repor o feed.
+  useEffect(() => {
+    if (posts && fresh && posts.length !== fresh.length) {
+      qc.invalidateQueries({ queryKey });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fresh?.length, posts?.length]);
 
   if (isLoading) {
     return (
@@ -41,7 +85,7 @@ function FeedPage() {
     );
   }
 
-  if (!posts || posts.length === 0) {
+  if (!fresh || fresh.length === 0) {
     return (
       <MobileShell>
         <div className="flex h-[100dvh] flex-col items-center justify-center bg-black px-6 text-center">
@@ -59,7 +103,7 @@ function FeedPage() {
 
   return (
     <MobileShell fullBleed>
-      <FeedReel posts={posts} />
+      <FeedReel posts={fresh} />
     </MobileShell>
   );
 }
