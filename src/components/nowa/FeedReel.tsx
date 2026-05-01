@@ -5,7 +5,9 @@ import { Heart, MessageCircle, Share2, UserPlus, UserCheck, Clock, Loader2 } fro
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Avatar } from "./PostCard";
+import { CommentsPanel } from "./CommentsPanel";
 import {
+  fetchCommentsCount,
   fetchFollowState,
   toggleFollow,
   toggleLike,
