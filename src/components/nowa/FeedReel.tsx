@@ -96,6 +96,22 @@ export function FeedReel({ posts }: { posts: Post[] }) {
     return () => obs.disconnect();
   }, [groups.length]);
 
+  const scrollToGroup = useCallback((idx: number) => {
+    const el = containerRef.current;
+    if (!el) return;
+    const target = el.querySelector<HTMLElement>(`[data-group-idx="${idx}"]`);
+    target?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  const handleGroupFinished = useCallback((gi: number) => {
+    if (gi + 1 < groups.length) {
+      scrollToGroup(gi + 1);
+    } else {
+      // Loop back to first group
+      scrollToGroup(0);
+    }
+  }, [groups.length, scrollToGroup]);
+
   const windowStart = Math.max(0, activeGroupIdx - WINDOW);
   const windowEnd = Math.min(groups.length - 1, activeGroupIdx + WINDOW);
 
@@ -130,6 +146,7 @@ export function FeedReel({ posts }: { posts: Post[] }) {
                   group={group}
                   active={gi === activeGroupIdx}
                   nearActive={Math.abs(gi - activeGroupIdx) <= 1}
+                  onGroupFinished={() => handleGroupFinished(gi)}
                 />
               ) : (
                 <div className="h-full w-full bg-black" />
@@ -150,10 +167,12 @@ function GroupSlide({
   group,
   active,
   nearActive,
+  onGroupFinished,
 }: {
   group: AuthorGroup;
   active: boolean;
   nearActive: boolean;
+  onGroupFinished?: () => void;
 }) {
   const [currentPostIdx, setCurrentPostIdx] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -166,11 +185,16 @@ function GroupSlide({
     const isVideo = post.media_type === "video";
     if (!isVideo) {
       timerRef.current = setTimeout(() => {
-        setCurrentPostIdx((i) => (i + 1 < total ? i + 1 : i));
+        setCurrentPostIdx((i) => {
+          if (i + 1 < total) return i + 1;
+          // Last post in group finished → advance to next group
+          onGroupFinished?.();
+          return i;
+        });
       }, 5000);
     }
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [active, currentPostIdx, total, post.media_type]);
+  }, [active, currentPostIdx, total, post.media_type, onGroupFinished]);
 
   // Reset to first post when group becomes active
   useEffect(() => {
@@ -180,8 +204,10 @@ function GroupSlide({
   const goNext = useCallback(() => {
     if (currentPostIdx + 1 < total) {
       setCurrentPostIdx((i) => i + 1);
+    } else {
+      onGroupFinished?.();
     }
-  }, [currentPostIdx, total]);
+  }, [currentPostIdx, total, onGroupFinished]);
 
   const goPrev = useCallback(() => {
     if (currentPostIdx > 0) {
@@ -444,7 +470,7 @@ const ReelSlide = memo(function ReelSlide({
         <video
           ref={videoElRef}
           src={post.media_url}
-          loop={!hasMultiple}
+          loop={false}
           muted={muted}
           playsInline
           preload={nearActive ? "auto" : "metadata"}
