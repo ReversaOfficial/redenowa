@@ -52,6 +52,8 @@ type RawPost = {
   media_type: string;
   caption: string | null;
   created_at: string;
+  flagged: boolean;
+  flagged_reason: string | null;
   profiles: {
     id: string;
     handle: string;
