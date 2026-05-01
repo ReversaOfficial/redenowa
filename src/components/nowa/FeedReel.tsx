@@ -308,13 +308,16 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
                 followMutation.mutate();
               }}
               disabled={followMutation.isPending || !follow}
-              className={`nowa-tap ml-auto inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors disabled:opacity-60 ${
+              aria-busy={followMutation.isPending}
+              className={`nowa-tap ml-auto inline-flex min-w-[88px] items-center justify-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all disabled:opacity-70 ${
                 follow?.is_following
                   ? "bg-white/15 text-white backdrop-blur"
                   : "bg-primary text-primary-foreground"
-              }`}
+              } ${followMutation.isPending ? "scale-95" : ""}`}
             >
-              {follow?.is_following ? (
+              {followMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2.5} />
+              ) : follow?.is_following ? (
                 <>
                   <UserCheck className="h-3.5 w-3.5" strokeWidth={2.5} />
                   Seguindo
