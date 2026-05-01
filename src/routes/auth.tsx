@@ -118,6 +118,18 @@ function AuthPage() {
           setBusy(false);
           return;
         }
+
+        // Check if handle is already taken
+        const { data: existingHandle } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("handle", parsed.data.handle)
+          .maybeSingle();
+        if (existingHandle) {
+          toast.error("Esse nome de usuário (@) já está em uso. Escolha outro.");
+          setBusy(false);
+          return;
+        }
         const { error } = await supabase.auth.signUp({
           email: parsed.data.email,
           password: parsed.data.password,
