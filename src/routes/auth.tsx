@@ -93,6 +93,7 @@ function AuthPage() {
           name,
           city,
           country,
+          dateOfBirth,
           email,
           password,
         });
@@ -110,6 +111,7 @@ function AuthPage() {
               display_name: parsed.data.name,
               city: parsed.data.city,
               country: parsed.data.country,
+              date_of_birth: parsed.data.dateOfBirth,
             },
           },
         });
