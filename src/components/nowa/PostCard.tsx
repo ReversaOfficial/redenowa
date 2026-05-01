@@ -1,4 +1,4 @@
-import { Heart, MessageCircle, Share2, Bookmark, Clock } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,13 +6,11 @@ import { toast } from "sonner";
 import {
   toggleLike,
   timeAgo,
-  timeRemaining,
-  useMinuteTick,
   type Post,
 } from "@/lib/posts-api";
+import { ExpiryCountdown } from "./ExpiryCountdown";
 
 export function PostCard({ post }: { post: Post }) {
-  useMinuteTick();
   const qc = useQueryClient();
 
   const likeMutation = useMutation({
