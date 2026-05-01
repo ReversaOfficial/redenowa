@@ -158,6 +158,7 @@ function EditProfilePage() {
         display_name: parsed.data.display_name,
         bio: parsed.data.bio || null,
         city: parsed.data.city || null,
+        state: parsed.data.state || null,
         country: parsed.data.country || null,
         theme_bg: bg,
         theme_ring: ring,
