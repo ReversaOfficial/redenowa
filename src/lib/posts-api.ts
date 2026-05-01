@@ -283,7 +283,7 @@ export async function fetchUserPosts(
       "id, author_id, media_url, media_type, caption, created_at, flagged, flagged_reason, close_friends_only, profiles!posts_author_id_fkey(id, handle, display_name, avatar_url), likes(user_id)"
     )
     .eq("author_id", userId)
-    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: active })
     .limit(200);
   q = active ? q.gt("created_at", cutoff) : q.lte("created_at", cutoff);
   const { data, error } = await q;
