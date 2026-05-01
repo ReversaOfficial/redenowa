@@ -12,6 +12,7 @@ import {
   Video,
   Square,
   Heart,
+  MicOff,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -113,8 +114,9 @@ function PostPage() {
   const [retryToken, setRetryToken] = useState(0);
   const [recording, setRecording] = useState(false);
   const [recordMs, setRecordMs] = useState(0);
+  const [micDenied, setMicDenied] = useState(false);
 
-  // Start camera
+  // Start camera — always request audio+video so the browser remembers both permissions
   useEffect(() => {
     if (stage !== "camera") return;
     let cancelled = false;
@@ -123,24 +125,57 @@ function PostPage() {
       try {
         setError(null);
         setReady(false);
+        setMicDenied(false);
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((t) => t.stop());
         }
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new Error("MediaDevices not supported");
         }
-        const constraints: MediaStreamConstraints = {
-          video: { facingMode: facing },
-          audio: mode === "video",
-        };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        let stream: MediaStream;
+        try {
+          // Always request both video + audio so the browser grants & persists both permissions
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: facing },
+            audio: true,
+          });
+        } catch (firstErr) {
+          // If audio was denied but video might still work, try video-only
+          const errName = firstErr instanceof Error ? firstErr.name : "";
+          if (errName === "NotAllowedError" || errName === "PermissionDeniedError") {
+            try {
+              stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: facing },
+                audio: false,
+              });
+              setMicDenied(true);
+              toast.warning("Microfone bloqueado", {
+                description: "Os vídeos serão gravados sem som. Libere o microfone nas configurações do navegador.",
+                duration: 5000,
+              });
+            } catch (videoOnlyErr) {
+              // Both denied — throw original error
+              throw firstErr;
+            }
+          } else {
+            throw firstErr;
+          }
+        }
+
         if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
+          stream!.getTracks().forEach((t) => t.stop());
           return;
         }
-        streamRef.current = stream;
+
+        // Check if we got audio tracks
+        if (stream!.getAudioTracks().length === 0) {
+          setMicDenied(true);
+        }
+
+        streamRef.current = stream!;
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+          videoRef.current.srcObject = stream!;
           await videoRef.current.play().catch(() => {});
           setReady(true);
         }
@@ -161,7 +196,7 @@ function PostPage() {
         streamRef.current = null;
       }
     };
-  }, [facing, stage, retryToken, mode]);
+  }, [facing, stage, retryToken]);
 
   function stopRecordingCleanup() {
     if (timerRef.current) {
@@ -405,6 +440,16 @@ function PostPage() {
                 cancelLabel="Voltar ao feed"
                 onDark
               />
+            )}
+
+            {/* Mic denied badge */}
+            {micDenied && ready && !error && (
+              <div className="absolute left-4 bottom-[calc(max(env(safe-area-inset-bottom),24px)+180px)] z-30">
+                <div className="flex items-center gap-1.5 rounded-full bg-red-500/90 px-3 py-1.5 backdrop-blur">
+                  <MicOff className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
+                  <span className="text-[11px] font-semibold text-white">Sem áudio</span>
+                </div>
+              </div>
             )}
 
             <div className="absolute inset-x-0 bottom-0 z-20 pb-[max(env(safe-area-inset-bottom),24px)] pt-6">
