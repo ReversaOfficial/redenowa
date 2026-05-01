@@ -146,6 +146,7 @@ export function FeedReel({ posts }: { posts: Post[] }) {
                   group={group}
                   active={gi === activeGroupIdx}
                   nearActive={Math.abs(gi - activeGroupIdx) <= 1}
+                  onGroupFinished={() => handleGroupFinished(gi)}
                 />
               ) : (
                 <div className="h-full w-full bg-black" />
