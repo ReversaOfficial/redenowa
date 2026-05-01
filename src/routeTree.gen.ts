@@ -16,6 +16,7 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedPostRouteImport } from './routes/_authenticated/post'
 import { Route as AuthenticatedArchiveRouteImport } from './routes/_authenticated/archive'
 import { Route as AuthenticatedUHandleRouteImport } from './routes/_authenticated/u.$handle'
+import { Route as AuthenticatedProfileEditRouteImport } from './routes/_authenticated/profile.edit'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -51,21 +52,29 @@ const AuthenticatedUHandleRoute = AuthenticatedUHandleRouteImport.update({
   path: '/u/$handle',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedProfileEditRoute =
+  AuthenticatedProfileEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedProfileRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/archive': typeof AuthenticatedArchiveRoute
   '/post': typeof AuthenticatedPostRoute
-  '/profile': typeof AuthenticatedProfileRoute
+  '/profile': typeof AuthenticatedProfileRouteWithChildren
+  '/profile/edit': typeof AuthenticatedProfileEditRoute
   '/u/$handle': typeof AuthenticatedUHandleRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/archive': typeof AuthenticatedArchiveRoute
   '/post': typeof AuthenticatedPostRoute
-  '/profile': typeof AuthenticatedProfileRoute
+  '/profile': typeof AuthenticatedProfileRouteWithChildren
   '/': typeof AuthenticatedIndexRoute
+  '/profile/edit': typeof AuthenticatedProfileEditRoute
   '/u/$handle': typeof AuthenticatedUHandleRoute
 }
 export interface FileRoutesById {
@@ -74,15 +83,30 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/archive': typeof AuthenticatedArchiveRoute
   '/_authenticated/post': typeof AuthenticatedPostRoute
-  '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRouteWithChildren
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/profile/edit': typeof AuthenticatedProfileEditRoute
   '/_authenticated/u/$handle': typeof AuthenticatedUHandleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/archive' | '/post' | '/profile' | '/u/$handle'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/archive'
+    | '/post'
+    | '/profile'
+    | '/profile/edit'
+    | '/u/$handle'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/archive' | '/post' | '/profile' | '/' | '/u/$handle'
+  to:
+    | '/auth'
+    | '/archive'
+    | '/post'
+    | '/profile'
+    | '/'
+    | '/profile/edit'
+    | '/u/$handle'
   id:
     | '__root__'
     | '/_authenticated'
@@ -91,6 +115,7 @@ export interface FileRouteTypes {
     | '/_authenticated/post'
     | '/_authenticated/profile'
     | '/_authenticated/'
+    | '/_authenticated/profile/edit'
     | '/_authenticated/u/$handle'
   fileRoutesById: FileRoutesById
 }
@@ -150,13 +175,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUHandleRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/profile/edit': {
+      id: '/_authenticated/profile/edit'
+      path: '/edit'
+      fullPath: '/profile/edit'
+      preLoaderRoute: typeof AuthenticatedProfileEditRouteImport
+      parentRoute: typeof AuthenticatedProfileRoute
+    }
   }
 }
+
+interface AuthenticatedProfileRouteChildren {
+  AuthenticatedProfileEditRoute: typeof AuthenticatedProfileEditRoute
+}
+
+const AuthenticatedProfileRouteChildren: AuthenticatedProfileRouteChildren = {
+  AuthenticatedProfileEditRoute: AuthenticatedProfileEditRoute,
+}
+
+const AuthenticatedProfileRouteWithChildren =
+  AuthenticatedProfileRoute._addFileChildren(AuthenticatedProfileRouteChildren)
 
 interface AuthenticatedRouteChildren {
   AuthenticatedArchiveRoute: typeof AuthenticatedArchiveRoute
   AuthenticatedPostRoute: typeof AuthenticatedPostRoute
-  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedUHandleRoute: typeof AuthenticatedUHandleRoute
 }
@@ -164,7 +207,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedArchiveRoute: AuthenticatedArchiveRoute,
   AuthenticatedPostRoute: AuthenticatedPostRoute,
-  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedUHandleRoute: AuthenticatedUHandleRoute,
 }

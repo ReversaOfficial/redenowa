@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { LogOut, Grid3x3, Loader2 } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { LogOut, Grid3x3, Loader2, Pencil } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { TopBar } from "@/components/nowa/TopBar";
@@ -73,6 +73,14 @@ function ProfilePage() {
         {profile?.bio && (
           <p className="mt-4 text-sm leading-snug text-foreground">{profile.bio}</p>
         )}
+
+        <Link
+          to="/profile/edit"
+          className="nowa-tap mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          Editar perfil
+        </Link>
       </section>
 
       <div className="border-t border-border">
