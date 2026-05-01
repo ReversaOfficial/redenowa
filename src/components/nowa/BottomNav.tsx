@@ -2,12 +2,19 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, Camera, User, Archive } from "lucide-react";
 import { motion } from "framer-motion";
 
-const items = [
+type NavItem = {
+  to: "/" | "/archive" | "/post" | "/profile";
+  icon: typeof Home;
+  label: string;
+  primary?: boolean;
+};
+
+const items: NavItem[] = [
   { to: "/", icon: Home, label: "Agora" },
   { to: "/archive", icon: Archive, label: "Arquivo" },
   { to: "/post", icon: Camera, label: "Postar", primary: true },
   { to: "/profile", icon: User, label: "Perfil" },
-] as const;
+];
 
 export function BottomNav() {
   const path = useRouterState({ select: (s) => s.location.pathname });
