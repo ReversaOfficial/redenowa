@@ -188,13 +188,20 @@ function OnboardingPage() {
               maxLength={60}
             />
             <Field
-              label="País"
-              value={country}
-              onChange={setCountry}
-              placeholder="Brasil"
+              label="Estado"
+              value={state}
+              onChange={setState}
+              placeholder="Rio Grande do Sul"
               maxLength={60}
             />
           </div>
+          <Field
+            label="País"
+            value={country}
+            onChange={setCountry}
+            placeholder="Brasil"
+            maxLength={60}
+          />
 
           <ColorPicker
             label="Cor de fundo do perfil"
