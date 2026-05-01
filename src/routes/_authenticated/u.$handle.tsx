@@ -213,19 +213,48 @@ function PublicProfilePage() {
         </div>
       ) : (
         <>
-          <section className="px-5 py-6">
+          <section
+            className="px-5 py-6"
+            style={
+              profile.theme_bg ? { background: profile.theme_bg } : undefined
+            }
+          >
             <div className="flex items-center gap-4">
               <Avatar
                 src={profile.avatar_url}
                 name={profile.display_name}
                 size={80}
+                ringColor={profile.theme_ring}
+                ringWidth={4}
               />
               <div className="flex-1">
-                <h2 className="text-lg font-bold text-foreground">
+                <h2
+                  className="text-lg font-bold"
+                  style={{
+                    color: profile.theme_bg
+                      ? readableTextOn(profile.theme_bg)
+                      : undefined,
+                  }}
+                >
                   {profile.display_name}
                 </h2>
-                <p className="text-sm text-muted-foreground">
+                <p
+                  className="text-sm"
+                  style={{
+                    color: profile.theme_bg
+                      ? withAlpha(readableTextOn(profile.theme_bg), 0.7)
+                      : undefined,
+                  }}
+                >
                   @{profile.handle}
+                  {profile.city || profile.country ? (
+                    <span className="ml-1">
+                      ·{" "}
+                      {[profile.city, profile.country]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </span>
+                  ) : null}
                 </p>
               </div>
               {isMe ? (
