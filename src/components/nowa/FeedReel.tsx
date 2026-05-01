@@ -420,6 +420,16 @@ const ReelSlide = memo(function ReelSlide({
         </span>
       </div>
 
+      {/* Badge melhores amigos */}
+      {post.close_friends_only && (
+        <div className="absolute right-4 top-[max(env(safe-area-inset-top),16px)] z-10">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">
+            <Heart className="h-3 w-3 fill-white" strokeWidth={0} />
+            Melhores Amigos
+          </span>
+        </div>
+      )}
+
       {/* Banner de post marcado como impróprio (só o autor vê) */}
       {post.flagged && isMine && (
         <div className="absolute inset-x-4 top-[calc(max(env(safe-area-inset-top),16px)+36px)] z-10">
