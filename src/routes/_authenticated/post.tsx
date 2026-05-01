@@ -452,6 +452,7 @@ function PostPage() {
               </div>
             )}
 
+            <div className="absolute inset-x-0 bottom-0 z-20 pb-[max(env(safe-area-inset-bottom),24px)] pt-6">
               {/* Mode switcher */}
               {!recording && (
                 <div className="mb-4 flex items-center justify-center gap-6">
