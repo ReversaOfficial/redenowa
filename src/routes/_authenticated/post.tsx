@@ -201,14 +201,25 @@ function PostPage() {
     const stream = streamRef.current;
     if (!stream) return;
 
-    chunksRef.current = [];
-    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-      ? "video/webm;codecs=vp9"
-      : MediaRecorder.isTypeSupported("video/webm")
-      ? "video/webm"
-      : "video/mp4";
+    // Ensure audio tracks are present; if not, warn but continue
+    const audioTracks = stream.getAudioTracks();
+    if (audioTracks.length === 0) {
+      console.warn("[recorder] No audio tracks in stream");
+    }
 
-    const recorder = new MediaRecorder(stream, { mimeType });
+    chunksRef.current = [];
+    // Prefer codecs that include audio (opus for webm)
+    const candidates = [
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm",
+      "video/mp4",
+    ];
+    const mimeType = candidates.find((m) => MediaRecorder.isTypeSupported(m)) ?? "video/webm";
+
+    const recorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 128000 });
     recorderRef.current = recorder;
 
     recorder.ondataavailable = (e) => {
