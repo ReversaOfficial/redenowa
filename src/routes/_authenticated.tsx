@@ -1,23 +1,14 @@
 import {
   createFileRoute,
   Outlet,
-  redirect,
   useLocation,
   useNavigate,
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_authenticated")({
-  beforeLoad: async () => {
-    if (typeof window === "undefined") return;
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
-      throw redirect({ to: "/welcome" });
-    }
-  },
   component: AuthGuard,
 });
 
@@ -31,6 +22,14 @@ function AuthGuard() {
     const t = setTimeout(() => setShowFallback(true), 250);
     return () => clearTimeout(t);
   }, []);
+
+  // Sem sessão → manda para a tela de boas-vindas/login.
+  useEffect(() => {
+    if (loading) return;
+    if (!session) {
+      navigate({ to: "/welcome", replace: true });
+    }
+  }, [loading, session, navigate]);
 
   // Força onboarding pós-cadastro até o usuário concluir.
   useEffect(() => {
