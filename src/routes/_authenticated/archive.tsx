@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Lock } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { TopBar } from "@/components/nowa/TopBar";
-import { useMyArchive } from "@/lib/posts-store";
+import { fetchUserPosts } from "@/lib/posts-api";
+import { useAuth } from "@/lib/auth-context";
 
-export const Route = createFileRoute("/archive")({
+export const Route = createFileRoute("/_authenticated/archive")({
   head: () => ({
     meta: [
       { title: "Arquivo — NOWA" },
@@ -18,7 +20,12 @@ export const Route = createFileRoute("/archive")({
 });
 
 function ArchivePage() {
-  const archive = useMyArchive();
+  const { user } = useAuth();
+  const { data: archive, isLoading } = useQuery({
+    queryKey: ["posts", "user-archive", user?.id],
+    queryFn: () => fetchUserPosts(user!.id, false),
+    enabled: !!user,
+  });
 
   return (
     <MobileShell>
@@ -39,7 +46,13 @@ function ArchivePage() {
         </p>
       </div>
 
-      {archive.length === 0 ? (
+      {isLoading && (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      )}
+
+      {!isLoading && archive && archive.length === 0 && (
         <div className="px-6 py-20 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-card">
             <Lock className="h-7 w-7 text-muted-foreground" strokeWidth={2} />
@@ -51,7 +64,9 @@ function ArchivePage() {
             Quando seus posts passarem de 24h, eles ficam guardados aqui.
           </p>
         </div>
-      ) : (
+      )}
+
+      {!isLoading && archive && archive.length > 0 && (
         <div className="grid grid-cols-3 gap-0.5">
           {archive.map((p) => (
             <div
@@ -59,8 +74,8 @@ function ArchivePage() {
               className="relative aspect-square overflow-hidden bg-card"
             >
               <img
-                src={p.mediaUrl}
-                alt={p.caption}
+                src={p.media_url}
+                alt={p.caption ?? ""}
                 loading="lazy"
                 className="h-full w-full object-cover opacity-90"
               />

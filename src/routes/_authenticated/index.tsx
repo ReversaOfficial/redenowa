@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { TopBar } from "@/components/nowa/TopBar";
 import { PostCard } from "@/components/nowa/PostCard";
-import { useActivePosts } from "@/lib/posts-store";
+import { fetchActivePosts, useMinuteTick } from "@/lib/posts-api";
+import { useAuth } from "@/lib/auth-context";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "NOWA — O momento é agora." },
@@ -15,18 +17,19 @@ export const Route = createFileRoute("/")({
         content:
           "NOWA é a rede social do agora. Sem filtros, sem passado. Poste agora ou perca.",
       },
-      { property: "og:title", content: "NOWA — O momento é agora." },
-      {
-        property: "og:description",
-        content: "Sem filtro. Sem passado. Quem viu, viu.",
-      },
     ],
   }),
   component: FeedPage,
 });
 
 function FeedPage() {
-  const posts = useActivePosts();
+  const { user } = useAuth();
+  useMinuteTick();
+  const { data: posts, isLoading } = useQuery({
+    queryKey: ["posts", "active", user?.id ?? null],
+    queryFn: () => fetchActivePosts(user?.id ?? null),
+    refetchInterval: 60_000,
+  });
 
   return (
     <MobileShell>
@@ -48,22 +51,28 @@ function FeedPage() {
 
       <div className="px-4 py-3">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          últimas 24h · {posts.length} posts
+          últimas 24h · {posts?.length ?? 0} posts
         </p>
       </div>
 
+      {isLoading && (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      )}
+
       <AnimatePresence mode="popLayout">
-        {posts.length === 0 ? (
+        {!isLoading && posts && posts.length === 0 ? (
           <EmptyFeed />
         ) : (
-          posts.map((post, i) => (
+          posts?.map((post, i) => (
             <motion.div
               key={post.id}
               layout
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.25, delay: i * 0.04 }}
+              transition={{ duration: 0.25, delay: Math.min(i * 0.04, 0.3) }}
             >
               <PostCard post={post} />
             </motion.div>
@@ -71,12 +80,16 @@ function FeedPage() {
         )}
       </AnimatePresence>
 
-      <footer className="px-6 py-12 text-center">
-        <p className="text-base font-semibold text-foreground">Você chegou ao fim.</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Quem viu, viu. Volte amanhã para um novo dia.
-        </p>
-      </footer>
+      {!isLoading && posts && posts.length > 0 && (
+        <footer className="px-6 py-12 text-center">
+          <p className="text-base font-semibold text-foreground">
+            Você chegou ao fim.
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Quem viu, viu. Volte amanhã para um novo dia.
+          </p>
+        </footer>
+      )}
     </MobileShell>
   );
 }
