@@ -27,12 +27,20 @@ export function FeedReel({ posts }: { posts: Post[] }) {
   useEffect(() => {
     if (!user?.id) return;
     const channel = supabase
-      .channel(`follows-self:${user.id}`)
+      .channel(`feed-sync:${user.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${user.id}` },
         () => {
           qc.invalidateQueries({ queryKey: ["follow-state"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "blocks", filter: `blocker_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["feed"] });
+          qc.invalidateQueries({ queryKey: ["posts"] });
         },
       )
       .subscribe();
