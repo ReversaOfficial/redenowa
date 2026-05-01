@@ -126,11 +126,14 @@ function AuthPage() {
           .eq("handle", parsed.data.handle)
           .maybeSingle();
         if (existingHandle) {
-          toast.error("Esse nome de usuário (@) já está em uso. Escolha outro.");
+          toast.error(
+            "Esse nome de usuário (@) já está em uso. Por favor, escolha outro nome de usuário para criar sua conta.",
+          );
           setBusy(false);
           return;
         }
-        const { error } = await supabase.auth.signUp({
+
+        const { error, data: signUpData } = await supabase.auth.signUp({
           email: parsed.data.email,
           password: parsed.data.password,
           options: {
@@ -146,6 +149,18 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+
+        // Supabase returns a user with no identities when email already exists
+        if (
+          signUpData?.user &&
+          (!signUpData.user.identities || signUpData.user.identities.length === 0)
+        ) {
+          toast.error(
+            "Esse email já está em uso. Por favor, use outro email ou faça login com sua conta existente.",
+          );
+          setBusy(false);
+          return;
+        }
         toast.success("Bem-vindo ao NOWA");
       } else {
         const parsed = signinSchema.safeParse({ email, password });
