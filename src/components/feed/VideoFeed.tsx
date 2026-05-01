@@ -85,7 +85,7 @@ export default function VideoFeed() {
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
           <Sparkles className="h-7 w-7 text-primary" strokeWidth={2.5} />
         </div>
-        <h2 className="text-xl font-bold text-white">Nenhum vídeo ainda</h2>
+        <h2 className="text-xl font-bold text-white">Nenhum post hoje</h2>
         <p className="mt-2 text-sm text-white/70">Seja o primeiro a postar!</p>
       </div>
     );

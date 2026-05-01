@@ -19,10 +19,16 @@ export interface VideoPost {
   comments_count: number;
 }
 
-const PAGE_SIZE = 5;
-const HOUR = 60 * 60 * 1000;
+const PAGE_SIZE = 10;
 
-async function fetchVideoFeed({
+function getTodayRange() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 1, 0);
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
+async function fetchFeedPosts({
   pageParam = 0,
   userId,
 }: {
@@ -31,7 +37,7 @@ async function fetchVideoFeed({
 }): Promise<{ videos: VideoPost[]; nextCursor: number | null }> {
   const from = pageParam * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
-  const cutoff = new Date(Date.now() - 24 * HOUR).toISOString();
+  const { start, end } = getTodayRange();
 
   const { data, error } = await supabase
     .from("posts")
@@ -53,9 +59,9 @@ async function fetchVideoFeed({
         user_id
       )
     `)
-    .eq("media_type", "video")
     .eq("flagged", false)
-    .gte("created_at", cutoff)
+    .gte("created_at", start)
+    .lte("created_at", end)
     .order("created_at", { ascending: false })
     .range(from, to);
 
@@ -92,7 +98,7 @@ export function useVideoFeed() {
 
   return useInfiniteQuery({
     queryKey: ["video-feed", userId],
-    queryFn: ({ pageParam }) => fetchVideoFeed({ pageParam, userId }),
+    queryFn: ({ pageParam }) => fetchFeedPosts({ pageParam, userId }),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: 1000 * 60 * 2,
