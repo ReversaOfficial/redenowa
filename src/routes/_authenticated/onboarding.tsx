@@ -8,6 +8,7 @@ import { MobileShell } from "@/components/nowa/MobileShell";
 import { Avatar } from "@/components/nowa/PostCard";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeHex, readableTextOn, withAlpha } from "@/lib/color";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
