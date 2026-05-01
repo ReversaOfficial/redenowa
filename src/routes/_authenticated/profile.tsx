@@ -191,8 +191,17 @@ function ProfilePage() {
             <Lock className="h-3.5 w-3.5" />
             Arquivo privado
           </Link>
+          <button
+            onClick={() => setCloseFriendsOpen(true)}
+            className="nowa-tap inline-flex items-center gap-2 rounded-full border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-500"
+          >
+            <Heart className="h-3.5 w-3.5 fill-emerald-500" strokeWidth={0} />
+            Melhores Amigos
+          </button>
         </div>
       </section>
+
+      <CloseFriendsManager open={closeFriendsOpen} onOpenChange={setCloseFriendsOpen} />
 
       <div className="border-t border-border">
         <div className="flex items-center gap-2 border-b-2 border-foreground px-5 py-3">
