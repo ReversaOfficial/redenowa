@@ -240,13 +240,16 @@ function PublicProfilePage() {
                     type="button"
                     onClick={() => followMutation.mutate()}
                     disabled={followMutation.isPending || !follow || block?.is_blocked}
-                    className={`nowa-tap inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
+                    aria-busy={followMutation.isPending}
+                    className={`nowa-tap inline-flex min-w-[96px] items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-all disabled:opacity-60 ${
                       follow?.is_following
                         ? "border border-border bg-card text-foreground"
                         : "bg-primary text-primary-foreground"
-                    }`}
+                    } ${followMutation.isPending ? "scale-95" : ""}`}
                   >
-                    {follow?.is_following ? (
+                    {followMutation.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2.5} />
+                    ) : follow?.is_following ? (
                       <>
                         <UserCheck className="h-3.5 w-3.5" strokeWidth={2.5} />
                         Seguindo
