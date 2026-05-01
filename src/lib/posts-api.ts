@@ -11,6 +11,8 @@ export type Post = {
   media_type: "image" | "video";
   caption: string | null;
   created_at: string; // ISO
+  flagged: boolean;
+  flagged_reason: string | null;
   // joined
   author: {
     id: string;
