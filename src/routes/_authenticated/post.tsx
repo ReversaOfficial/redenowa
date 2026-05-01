@@ -240,6 +240,33 @@ function PostPage() {
         mediaType = "image";
       }
 
+      // Content moderation — analyze image/frame before uploading
+      try {
+        let base64ForModeration: string;
+        if (mediaType === "video") {
+          // Extract first frame from video for moderation
+          base64ForModeration = snap ?? await extractFrameFromBlob(blob);
+        } else {
+          base64ForModeration = snap!;
+        }
+        // Ensure it's a proper data URL
+        if (!base64ForModeration.startsWith("data:")) {
+          base64ForModeration = `data:image/jpeg;base64,${base64ForModeration}`;
+        }
+        const modResult = await moderateImage({ data: { imageBase64: base64ForModeration } });
+        if (!modResult.safe) {
+          toast.error("Conteúdo impróprio detectado", {
+            description: modResult.reason || "Este conteúdo viola nossas diretrizes da comunidade.",
+            duration: 6000,
+          });
+          setPublishing(false);
+          return;
+        }
+      } catch (modErr) {
+        // If moderation fails, allow posting (fail open)
+        console.warn("[moderation] check failed, allowing:", modErr);
+      }
+
       const url = await uploadMedia(user.id, blob, ext);
       await createPost({ authorId: user.id, mediaUrl: url, caption: parsed.data, mediaType });
       qc.invalidateQueries({ queryKey: ["posts"] });
