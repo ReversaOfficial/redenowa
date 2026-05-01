@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Grid3x3, Loader2, UserPlus, UserCheck } from "lucide-react";
+import { ArrowLeft, Grid3x3, Loader2, UserPlus, UserCheck, Ban, ShieldOff } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,12 +8,15 @@ import { MobileShell } from "@/components/nowa/MobileShell";
 import { TopBar } from "@/components/nowa/TopBar";
 import { Avatar } from "@/components/nowa/PostCard";
 import {
+  fetchBlockState,
   fetchFollowState,
   fetchProfileByHandle,
   fetchUserPosts,
   timeRemaining,
+  toggleBlock,
   toggleFollow,
   useMinuteTick,
+  type BlockState,
   type FollowState,
 } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
@@ -86,6 +89,39 @@ function PublicProfilePage() {
     },
   });
 
+  // Block state
+  const blockKey = ["block-state", profile?.id, user?.id ?? null] as const;
+  const { data: block } = useQuery({
+    queryKey: blockKey,
+    queryFn: () => fetchBlockState(profile!.id, user?.id ?? null),
+    enabled: !!profile?.id && !!user?.id,
+  });
+
+  const blockMutation = useMutation({
+    mutationFn: () => toggleBlock(profile!.id, !!block?.is_blocked),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: blockKey });
+      const prev = qc.getQueryData<BlockState>(blockKey);
+      qc.setQueryData<BlockState>(blockKey, {
+        is_blocked: !prev?.is_blocked,
+      });
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(blockKey, ctx.prev);
+      toast.error("Não foi possível atualizar bloqueio");
+    },
+    onSuccess: () => {
+      toast.success(block?.is_blocked ? "Usuário desbloqueado" : "Usuário bloqueado");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["block-state", profile?.id] });
+      qc.invalidateQueries({ queryKey: ["follow-state", profile?.id] });
+      qc.invalidateQueries({ queryKey: ["posts"] });
+      qc.invalidateQueries({ queryKey: ["feed"] });
+    },
+  });
+
   // Realtime: refresh follow stats/button when this profile gains or loses
   // followers, or when the viewer follows/unfollows anyone.
   useEffect(() => {
@@ -105,6 +141,17 @@ function PublicProfilePage() {
         { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${user.id}` },
         () => {
           qc.invalidateQueries({ queryKey: ["follow-state", profile.id] });
+        },
+      );
+    }
+    if (user?.id) {
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "blocks", filter: `blocker_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["block-state", profile.id] });
+          qc.invalidateQueries({ queryKey: ["posts"] });
+          qc.invalidateQueries({ queryKey: ["feed"] });
         },
       );
     }
@@ -173,28 +220,48 @@ function PublicProfilePage() {
                   Editar
                 </Link>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => followMutation.mutate()}
-                  disabled={followMutation.isPending || !follow}
-                  className={`nowa-tap inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
-                    follow?.is_following
-                      ? "border border-border bg-card text-foreground"
-                      : "bg-primary text-primary-foreground"
-                  }`}
-                >
-                  {follow?.is_following ? (
-                    <>
-                      <UserCheck className="h-3.5 w-3.5" strokeWidth={2.5} />
-                      Seguindo
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                      Seguir
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => followMutation.mutate()}
+                    disabled={followMutation.isPending || !follow || block?.is_blocked}
+                    className={`nowa-tap inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
+                      follow?.is_following
+                        ? "border border-border bg-card text-foreground"
+                        : "bg-primary text-primary-foreground"
+                    }`}
+                  >
+                    {follow?.is_following ? (
+                      <>
+                        <UserCheck className="h-3.5 w-3.5" strokeWidth={2.5} />
+                        Seguindo
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                        Seguir
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => blockMutation.mutate()}
+                    disabled={blockMutation.isPending}
+                    aria-label={block?.is_blocked ? "Desbloquear" : "Bloquear"}
+                    title={block?.is_blocked ? "Desbloquear" : "Bloquear"}
+                    className={`nowa-tap flex h-8 w-8 items-center justify-center rounded-full border transition-colors disabled:opacity-50 ${
+                      block?.is_blocked
+                        ? "border-destructive bg-destructive/10 text-destructive"
+                        : "border-border bg-card text-muted-foreground"
+                    }`}
+                  >
+                    {block?.is_blocked ? (
+                      <ShieldOff className="h-4 w-4" strokeWidth={2.5} />
+                    ) : (
+                      <Ban className="h-4 w-4" strokeWidth={2.5} />
+                    )}
+                  </button>
+                </div>
               )}
             </div>
 
@@ -221,7 +288,17 @@ function PublicProfilePage() {
               <span className="text-sm font-semibold">Posts ativos</span>
             </div>
 
-            {loadingPosts ? (
+            {block?.is_blocked ? (
+              <div className="px-6 py-16 text-center">
+                <Ban className="mx-auto h-8 w-8 text-muted-foreground" />
+                <p className="mt-3 text-base font-semibold text-foreground">
+                  Você bloqueou este usuário.
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Os posts dele não aparecem para você.
+                </p>
+              </div>
+            ) : loadingPosts ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
