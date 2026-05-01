@@ -392,12 +392,12 @@ function EditProfilePage() {
               >
                 @{profile?.handle ?? "voce"}
               </p>
-              {(city || country) && (
+              {(city || state || country) && (
                 <p
                   className="mt-1 text-xs"
                   style={{ color: previewMutedColor }}
                 >
-                  {[city, country].filter(Boolean).join(" · ")}
+                  {[city, state, country].filter(Boolean).join(" · ")}
                 </p>
               )}
             </div>
