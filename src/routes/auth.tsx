@@ -360,6 +360,7 @@ function Field({
   autoComplete,
   required,
   minLength,
+  maxLength,
 }: {
   label: string;
   type: string;
@@ -369,6 +370,7 @@ function Field({
   autoComplete?: string;
   required?: boolean;
   minLength?: number;
+  maxLength?: number;
 }) {
   return (
     <label className="block">
