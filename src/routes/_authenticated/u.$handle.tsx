@@ -220,28 +220,48 @@ function PublicProfilePage() {
                   Editar
                 </Link>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => followMutation.mutate()}
-                  disabled={followMutation.isPending || !follow}
-                  className={`nowa-tap inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
-                    follow?.is_following
-                      ? "border border-border bg-card text-foreground"
-                      : "bg-primary text-primary-foreground"
-                  }`}
-                >
-                  {follow?.is_following ? (
-                    <>
-                      <UserCheck className="h-3.5 w-3.5" strokeWidth={2.5} />
-                      Seguindo
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                      Seguir
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => followMutation.mutate()}
+                    disabled={followMutation.isPending || !follow || block?.is_blocked}
+                    className={`nowa-tap inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
+                      follow?.is_following
+                        ? "border border-border bg-card text-foreground"
+                        : "bg-primary text-primary-foreground"
+                    }`}
+                  >
+                    {follow?.is_following ? (
+                      <>
+                        <UserCheck className="h-3.5 w-3.5" strokeWidth={2.5} />
+                        Seguindo
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                        Seguir
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => blockMutation.mutate()}
+                    disabled={blockMutation.isPending}
+                    aria-label={block?.is_blocked ? "Desbloquear" : "Bloquear"}
+                    title={block?.is_blocked ? "Desbloquear" : "Bloquear"}
+                    className={`nowa-tap flex h-8 w-8 items-center justify-center rounded-full border transition-colors disabled:opacity-50 ${
+                      block?.is_blocked
+                        ? "border-destructive bg-destructive/10 text-destructive"
+                        : "border-border bg-card text-muted-foreground"
+                    }`}
+                  >
+                    {block?.is_blocked ? (
+                      <ShieldOff className="h-4 w-4" strokeWidth={2.5} />
+                    ) : (
+                      <Ban className="h-4 w-4" strokeWidth={2.5} />
+                    )}
+                  </button>
+                </div>
               )}
             </div>
 
