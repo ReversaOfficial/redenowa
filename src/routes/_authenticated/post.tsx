@@ -14,8 +14,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
 import { MobileShell } from "@/components/nowa/MobileShell";
+import { CameraErrorFallback } from "@/components/nowa/CameraErrorFallback";
 import { useAuth } from "@/lib/auth-context";
 import { createPost, uploadMedia } from "@/lib/posts-api";
+import { classifyCameraError, type CameraErrorInfo } from "@/lib/camera-errors";
 
 const CAPTION_MIN = 3;
 const CAPTION_MAX = 80;
@@ -194,21 +196,13 @@ function PostPage() {
             )}
 
             {error && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black px-8 text-center">
-                <CameraIcon className="mb-4 h-10 w-10 text-primary" />
-                <h2 className="text-lg font-bold">Câmera necessária</h2>
-                <p className="mt-2 max-w-xs text-sm text-white/70">
-                  Permita o acesso à câmera. NOWA não aceita uploads — apenas o
-                  momento agora.
-                </p>
-                <p className="mt-4 text-xs text-white/40">{error}</p>
-                <button
-                  onClick={() => navigate({ to: "/" })}
-                  className="nowa-tap mt-6 rounded-full bg-white px-5 py-2 text-sm font-semibold text-black"
-                >
-                  Voltar
-                </button>
-              </div>
+              <CameraErrorFallback
+                info={error}
+                onRetry={() => setRetryToken((n) => n + 1)}
+                onCancel={() => navigate({ to: "/" })}
+                cancelLabel="Voltar ao feed"
+                onDark
+              />
             )}
 
             <div className="absolute inset-x-0 bottom-0 z-20 pb-[max(env(safe-area-inset-bottom),24px)] pt-6">
