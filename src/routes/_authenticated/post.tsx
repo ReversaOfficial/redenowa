@@ -107,6 +107,7 @@ function PostPage() {
   const [caption, setCaption] = useState("");
   const [closeFriendsOnly, setCloseFriendsOnly] = useState(false);
   const [error, setError] = useState<CameraErrorInfo | null>(null);
+  const [ready, setReady] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [retryToken, setRetryToken] = useState(0);
   const [recording, setRecording] = useState(false);
