@@ -164,8 +164,8 @@ function OnboardingPage() {
               className="mt-2 text-xs"
               style={{ color: previewMutedColor }}
             >
-              {[city, country].filter(Boolean).join(" · ") ||
-                "Cidade · País"}
+              {[city, state, country].filter(Boolean).join(" · ") ||
+                "Cidade · Estado · País"}
             </p>
           </div>
         </motion.section>
