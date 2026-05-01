@@ -365,3 +365,46 @@ export function useMinuteTick() {
     () => 0
   );
 }
+
+export type BlockState = { is_blocked: boolean };
+
+export async function fetchBlockState(
+  targetId: string,
+  viewerId: string | null
+): Promise<BlockState> {
+  if (!viewerId || viewerId === targetId) return { is_blocked: false };
+  const { data } = await supabase
+    .from("blocks")
+    .select("blocked_id")
+    .eq("blocker_id", viewerId)
+    .eq("blocked_id", targetId)
+    .maybeSingle();
+  return { is_blocked: !!data };
+}
+
+export async function toggleBlock(targetId: string, currentlyBlocked: boolean) {
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id;
+  if (!uid) throw new Error("Not authenticated");
+  if (uid === targetId) throw new Error("Cannot block yourself");
+  if (currentlyBlocked) {
+    const { error } = await supabase
+      .from("blocks")
+      .delete()
+      .eq("blocker_id", uid)
+      .eq("blocked_id", targetId);
+    if (error) throw error;
+  } else {
+    // also unfollow in both directions to clean up
+    await supabase
+      .from("follows")
+      .delete()
+      .or(
+        `and(follower_id.eq.${uid},following_id.eq.${targetId}),and(follower_id.eq.${targetId},following_id.eq.${uid})`
+      );
+    const { error } = await supabase
+      .from("blocks")
+      .insert({ blocker_id: uid, blocked_id: targetId });
+    if (error) throw error;
+  }
+}
