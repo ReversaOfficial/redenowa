@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { FeedReel } from "@/components/nowa/FeedReel";
+import { NotificationBell, NotificationsPanel } from "@/components/nowa/NotificationsPanel";
 import { fetchFeedPosts, useMinuteTick } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
 
