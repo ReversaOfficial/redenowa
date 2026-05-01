@@ -98,6 +98,7 @@ function AuthPage() {
         const parsed = signupSchema.safeParse({
           name,
           city,
+          state,
           country,
           dateOfBirth,
           email,
