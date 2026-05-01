@@ -1,11 +1,22 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { X, Camera as CameraIcon, RotateCcw, Send, Circle, ArrowLeft } from "lucide-react";
+import {
+  X,
+  Camera as CameraIcon,
+  RotateCcw,
+  Send,
+  Circle,
+  ArrowLeft,
+  Loader2,
+} from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { MobileShell } from "@/components/nowa/MobileShell";
-import { ME, postsStore } from "@/lib/posts-store";
+import { useAuth } from "@/lib/auth-context";
+import { createPost, uploadMedia } from "@/lib/posts-api";
 
-export const Route = createFileRoute("/post")({
+export const Route = createFileRoute("/_authenticated/post")({
   head: () => ({
     meta: [
       { title: "Postar agora — NOWA" },
@@ -17,8 +28,19 @@ export const Route = createFileRoute("/post")({
 
 type Stage = "camera" | "preview";
 
+function dataURLtoBlob(dataUrl: string): Blob {
+  const [header, b64] = dataUrl.split(",");
+  const mime = /data:(.*?);/.exec(header)?.[1] ?? "image/jpeg";
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
 function PostPage() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [stage, setStage] = useState<Stage>("camera");
@@ -27,6 +49,7 @@ function PostPage() {
   const [caption, setCaption] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     if (stage !== "camera") return;
@@ -55,9 +78,7 @@ function PostPage() {
         }
       } catch (e) {
         const msg =
-          e instanceof Error
-            ? e.message
-            : "Não foi possível acessar a câmera.";
+          e instanceof Error ? e.message : "Não foi possível acessar a câmera.";
         setError(msg);
       }
     }
@@ -88,23 +109,27 @@ function PostPage() {
       ctx.scale(-1, 1);
     }
     ctx.drawImage(video, 0, 0, w, h);
-    const data = canvas.toDataURL("image/jpeg", 0.9);
+    const data = canvas.toDataURL("image/jpeg", 0.88);
     setSnap(data);
     setStage("preview");
   }
 
-  function publish() {
-    if (!snap) return;
-    postsStore.add({
-      authorId: ME.id,
-      authorName: ME.name,
-      authorHandle: ME.handle,
-      authorAvatar: ME.avatar,
-      mediaUrl: snap,
-      mediaType: "image",
-      caption: caption.trim(),
-    });
-    navigate({ to: "/" });
+  async function publish() {
+    if (!snap || !user || publishing) return;
+    setPublishing(true);
+    try {
+      const blob = dataURLtoBlob(snap);
+      const url = await uploadMedia(user.id, blob, "jpg");
+      await createPost({ authorId: user.id, mediaUrl: url, caption: caption.trim() });
+      qc.invalidateQueries({ queryKey: ["posts"] });
+      toast.success("Publicado. O momento é agora.");
+      navigate({ to: "/" });
+    } catch (e) {
+      console.error(e);
+      const msg = e instanceof Error ? e.message : "Falha ao publicar";
+      toast.error(msg);
+      setPublishing(false);
+    }
   }
 
   return (
@@ -112,7 +137,6 @@ function PostPage() {
       <div className="relative h-screen w-full overflow-hidden bg-black text-white">
         {stage === "camera" && (
           <>
-            {/* Top bar */}
             <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
               <button
                 onClick={() => navigate({ to: "/" })}
@@ -136,7 +160,6 @@ function PostPage() {
               </button>
             </div>
 
-            {/* Video */}
             <video
               ref={videoRef}
               autoPlay
@@ -174,7 +197,6 @@ function PostPage() {
               </div>
             )}
 
-            {/* Bottom controls */}
             <div className="absolute inset-x-0 bottom-0 z-20 pb-[max(env(safe-area-inset-bottom),24px)] pt-6">
               <p className="mb-5 text-center text-xs font-medium uppercase tracking-[0.2em] text-white/70">
                 sem filtro · sem passado
@@ -239,10 +261,15 @@ function PostPage() {
             <div className="border-t border-border bg-background px-4 py-3 pb-[max(env(safe-area-inset-bottom),12px)]">
               <button
                 onClick={publish}
-                className="nowa-tap flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)]"
+                disabled={publishing}
+                className="nowa-tap flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow)] disabled:opacity-70"
               >
-                <Send className="h-4 w-4" strokeWidth={2.5} />
-                Publicar agora
+                {publishing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" strokeWidth={2.5} />
+                )}
+                {publishing ? "Publicando..." : "Publicar agora"}
               </button>
               <p className="mt-2 text-center text-[11px] text-muted-foreground">
                 Este post some em 24h. Quem viu, viu.
