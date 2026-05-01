@@ -27,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/profile")({
 function ProfilePage() {
   const { profile, user, signOut } = useAuth();
   const qc = useQueryClient();
+  const [closeFriendsOpen, setCloseFriendsOpen] = useState(false);
   // re-render every minute so countdowns update
   useMinuteTick();
 
