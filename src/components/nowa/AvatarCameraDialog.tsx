@@ -25,8 +25,9 @@ export function AvatarCameraDialog({ open, onClose, onCapture }: Props) {
   const streamRef = useRef<MediaStream | null>(null);
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [snap, setSnap] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<CameraErrorInfo | null>(null);
   const [ready, setReady] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
     if (!open || snap) return;
@@ -38,6 +39,9 @@ export function AvatarCameraDialog({ open, onClose, onCapture }: Props) {
         setReady(false);
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((t) => t.stop());
+        }
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("MediaDevices not supported");
         }
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: facing },
@@ -54,9 +58,10 @@ export function AvatarCameraDialog({ open, onClose, onCapture }: Props) {
           setReady(true);
         }
       } catch (e) {
-        const msg =
-          e instanceof Error ? e.message : "Não foi possível acessar a câmera.";
-        setError(msg);
+        if (cancelled) return;
+        const info = classifyCameraError(e);
+        setError(info);
+        toast.error(info.title, { description: info.message });
       }
     }
     start();
@@ -68,7 +73,7 @@ export function AvatarCameraDialog({ open, onClose, onCapture }: Props) {
         streamRef.current = null;
       }
     };
-  }, [facing, open, snap]);
+  }, [facing, open, snap, retryToken]);
 
   function close() {
     if (streamRef.current) {
