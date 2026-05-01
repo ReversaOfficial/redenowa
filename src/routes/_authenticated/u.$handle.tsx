@@ -51,7 +51,38 @@ function PublicProfilePage() {
     enabled: !!profile?.id,
   });
 
-  const isMe = user?.id && profile?.id === user.id;
+  const isMe = !!(user?.id && profile?.id === user.id);
+  const qc = useQueryClient();
+
+  const followKey = ["follow-state", profile?.id, user?.id ?? null] as const;
+  const { data: follow } = useQuery({
+    queryKey: followKey,
+    queryFn: () => fetchFollowState(profile!.id, user?.id ?? null),
+    enabled: !!profile?.id,
+  });
+
+  const followMutation = useMutation({
+    mutationFn: () => toggleFollow(profile!.id, !!follow?.is_following),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: followKey });
+      const prev = qc.getQueryData<FollowState>(followKey);
+      if (prev) {
+        qc.setQueryData<FollowState>(followKey, {
+          ...prev,
+          is_following: !prev.is_following,
+          followers: prev.followers + (prev.is_following ? -1 : 1),
+        });
+      }
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(followKey, ctx.prev);
+      toast.error("Não foi possível atualizar");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["follow-state", profile?.id] });
+    },
+  });
 
   return (
     <MobileShell>
@@ -104,14 +135,53 @@ function PublicProfilePage() {
                   @{profile.handle}
                 </p>
               </div>
-              {isMe && (
+              {isMe ? (
                 <Link
-                  to="/profile"
+                  to="/profile/edit"
                   className="rounded-full border border-border px-4 py-1.5 text-xs font-semibold text-foreground"
                 >
                   Editar
                 </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => followMutation.mutate()}
+                  disabled={followMutation.isPending || !follow}
+                  className={`nowa-tap inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
+                    follow?.is_following
+                      ? "border border-border bg-card text-foreground"
+                      : "bg-primary text-primary-foreground"
+                  }`}
+                >
+                  {follow?.is_following ? (
+                    <>
+                      <UserCheck className="h-3.5 w-3.5" strokeWidth={2.5} />
+                      Seguindo
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                      Seguir
+                    </>
+                  )}
+                </button>
               )}
+            </div>
+
+            {profile.bio ? (
+              <p className="mt-4 text-sm leading-snug text-foreground">
+                {profile.bio}
+              </p>
+            ) : (
+              <p className="mt-4 text-sm italic text-muted-foreground">
+                Sem bio. Só o agora.
+              </p>
+            )}
+
+            <div className="mt-5 grid grid-cols-3 gap-2 rounded-2xl bg-card p-4">
+              <Stat label="ao vivo" value={active?.length ?? 0} accent />
+              <Stat label="seguidores" value={follow?.followers ?? 0} />
+              <Stat label="seguindo" value={follow?.following ?? 0} />
             </div>
 
             {profile.bio ? (
