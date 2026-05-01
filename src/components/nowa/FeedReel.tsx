@@ -160,9 +160,9 @@ function GroupSlide({
   const post = group.posts[Math.min(currentPostIdx, group.posts.length - 1)];
   const total = group.posts.length;
 
-  // Auto-advance for images (5s), videos play to end then advance
+  // Auto-advance: images 5s, videos advance on ended (handled via onVideoEnded)
   useEffect(() => {
-    if (!active || total <= 1) return;
+    if (!active) return;
     const isVideo = post.media_type === "video";
     if (!isVideo) {
       timerRef.current = setTimeout(() => {
