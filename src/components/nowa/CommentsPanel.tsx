@@ -40,8 +40,9 @@ export function CommentsPanel({
   const { data: comments, isLoading } = useQuery({
     queryKey,
     queryFn: () => fetchComments(postId),
-    enabled: open,
+    enabled: open, // only refetch when open, but uses prefetched cache
     staleTime: 30_000,
+    placeholderData: (prev) => prev, // keep showing prefetched data while refetching
   });
 
   // Realtime: refresh on insert/delete for this post
