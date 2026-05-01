@@ -13,6 +13,7 @@ export type Post = {
   created_at: string; // ISO
   flagged: boolean;
   flagged_reason: string | null;
+  close_friends_only: boolean;
   // joined
   author: {
     id: string;
@@ -54,6 +55,7 @@ type RawPost = {
   created_at: string;
   flagged: boolean;
   flagged_reason: string | null;
+  close_friends_only: boolean;
   profiles: {
     id: string;
     handle: string;
@@ -75,6 +77,7 @@ function shape(rows: RawPost[], myId: string | null): Post[] {
       created_at: r.created_at,
       flagged: r.flagged ?? false,
       flagged_reason: r.flagged_reason ?? null,
+      close_friends_only: r.close_friends_only ?? false,
       author: r.profiles!,
       likes_count: r.likes.length,
       liked_by_me: myId ? r.likes.some((l) => l.user_id === myId) : false,
