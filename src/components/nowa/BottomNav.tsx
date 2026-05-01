@@ -52,13 +52,17 @@ export function BottomNav({ transparent = false }: { transparent?: boolean }) {
             >
               <Icon
                 className={`h-5 w-5 transition-colors ${
-                  active ? "text-foreground" : "text-muted-foreground"
+                  active
+                    ? transparent ? "text-white" : "text-foreground"
+                    : transparent ? "text-white/60" : "text-muted-foreground"
                 }`}
                 strokeWidth={active ? 2.5 : 2}
               />
               <span
                 className={`text-[10px] font-medium tracking-wide transition-colors ${
-                  active ? "text-foreground" : "text-muted-foreground"
+                  active
+                    ? transparent ? "text-white" : "text-foreground"
+                    : transparent ? "text-white/60" : "text-muted-foreground"
                 }`}
               >
                 {item.label}
