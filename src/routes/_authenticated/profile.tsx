@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { TopBar } from "@/components/nowa/TopBar";
 import { Avatar } from "@/components/nowa/PostCard";
+import { ReportBadges } from "@/components/nowa/ReportBadges";
 import { fetchUserPosts, timeRemaining, useMinuteTick } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
@@ -164,6 +165,13 @@ function ProfilePage() {
           >
             {profile.bio}
           </p>
+        )}
+
+        {profile && (
+          <ReportBadges
+            validCount={profile.valid_reports_count}
+            invalidCount={profile.invalid_reports_count}
+          />
         )}
 
         <div className="mt-4 flex flex-wrap gap-2">

@@ -21,6 +21,7 @@ import {
 } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
 import { readableTextOn, withAlpha } from "@/lib/color";
+import { ReportBadges } from "@/components/nowa/ReportBadges";
 
 export const Route = createFileRoute("/_authenticated/u/$handle")({
   head: ({ params }) => ({
@@ -322,6 +323,11 @@ function PublicProfilePage() {
                 Sem bio. Só o agora.
               </p>
             )}
+
+            <ReportBadges
+              validCount={profile.valid_reports_count}
+              invalidCount={profile.invalid_reports_count}
+            />
 
             <div className="mt-5 grid grid-cols-3 gap-2 rounded-2xl bg-card p-4">
               <Stat label="ao vivo" value={active?.length ?? 0} accent />

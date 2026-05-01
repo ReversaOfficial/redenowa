@@ -193,6 +193,8 @@ export type PublicProfile = {
   country: string | null;
   theme_bg: string | null;
   theme_ring: string | null;
+  valid_reports_count: number;
+  invalid_reports_count: number;
 };
 
 export async function fetchProfileByHandle(
@@ -201,7 +203,7 @@ export async function fetchProfileByHandle(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, handle, display_name, avatar_url, bio, city, state, country, theme_bg, theme_ring",
+      "id, handle, display_name, avatar_url, bio, city, state, country, theme_bg, theme_ring, valid_reports_count, invalid_reports_count",
     )
     .eq("handle", handle)
     .maybeSingle();
