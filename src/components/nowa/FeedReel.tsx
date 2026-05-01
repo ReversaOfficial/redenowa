@@ -96,7 +96,9 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
   const qc = useQueryClient();
   const [showHeart, setShowHeart] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [muted, setMuted] = useState(true);
   const lastTapRef = useRef(0);
+  const videoElRef = useRef<HTMLVideoElement>(null);
 
   const isMine = user?.id === post.author_id;
 
