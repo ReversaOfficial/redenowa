@@ -167,10 +167,12 @@ function GroupSlide({
   group,
   active,
   nearActive,
+  onGroupFinished,
 }: {
   group: AuthorGroup;
   active: boolean;
   nearActive: boolean;
+  onGroupFinished?: () => void;
 }) {
   const [currentPostIdx, setCurrentPostIdx] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -183,11 +185,16 @@ function GroupSlide({
     const isVideo = post.media_type === "video";
     if (!isVideo) {
       timerRef.current = setTimeout(() => {
-        setCurrentPostIdx((i) => (i + 1 < total ? i + 1 : i));
+        setCurrentPostIdx((i) => {
+          if (i + 1 < total) return i + 1;
+          // Last post in group finished → advance to next group
+          onGroupFinished?.();
+          return i;
+        });
       }, 5000);
     }
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [active, currentPostIdx, total, post.media_type]);
+  }, [active, currentPostIdx, total, post.media_type, onGroupFinished]);
 
   // Reset to first post when group becomes active
   useEffect(() => {
@@ -197,8 +204,10 @@ function GroupSlide({
   const goNext = useCallback(() => {
     if (currentPostIdx + 1 < total) {
       setCurrentPostIdx((i) => i + 1);
+    } else {
+      onGroupFinished?.();
     }
-  }, [currentPostIdx, total]);
+  }, [currentPostIdx, total, onGroupFinished]);
 
   const goPrev = useCallback(() => {
     if (currentPostIdx > 0) {
