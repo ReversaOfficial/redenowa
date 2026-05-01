@@ -1,14 +1,19 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2, Sparkles, Check } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { Avatar } from "@/components/nowa/PostCard";
+import {
+  ColorPicker,
+  PRESET_BGS,
+  PRESET_RINGS,
+} from "@/components/nowa/ColorPicker";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
-import { normalizeHex, readableTextOn, withAlpha } from "@/lib/color";
+import { readableTextOn, withAlpha } from "@/lib/color";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
@@ -26,27 +31,6 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
 const DEFAULT_BG = "#0F0F12";
 const DEFAULT_RING = "#FF2E63";
 
-const PRESET_BGS = [
-  "#0F0F12",
-  "#1B1F2A",
-  "#2A1B3D",
-  "#0E2A1F",
-  "#3D1B1B",
-  "#F4F1EA",
-  "#FFE9E3",
-  "#E3F0FF",
-];
-
-const PRESET_RINGS = [
-  "#FF2E63",
-  "#FFB100",
-  "#19C37D",
-  "#3B82F6",
-  "#A855F7",
-  "#FF7849",
-  "#000000",
-  "#FFFFFF",
-];
 
 const schema = z.object({
   display_name: z.string().trim().min(2, "Informe seu nome").max(40),
@@ -261,68 +245,6 @@ function Field({
         className="mt-1 w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background focus:outline-none"
       />
     </label>
-  );
-}
-
-function ColorPicker({
-  label,
-  value,
-  onChange,
-  presets,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  presets: string[];
-}) {
-  return (
-    <div>
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          {label}
-        </span>
-        <span className="text-[10px] tabular-nums text-muted-foreground">
-          {value.toUpperCase()}
-        </span>
-      </div>
-      <div className="mt-2 flex items-center gap-2">
-        <label
-          className="relative h-11 w-11 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-border"
-          style={{ background: value }}
-          aria-label={`Escolher ${label}`}
-        >
-          <input
-            type="color"
-            value={normalizeHex(value)}
-            onChange={(e) => onChange(e.target.value)}
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-          />
-        </label>
-        <div className="grid flex-1 grid-cols-8 gap-1.5">
-          {presets.map((c) => {
-            const selected = c.toLowerCase() === value.toLowerCase();
-            return (
-              <button
-                type="button"
-                key={c}
-                onClick={() => onChange(c)}
-                aria-label={c}
-                className="relative h-7 w-full rounded-md border border-border"
-                style={{ background: c }}
-              >
-                {selected && (
-                  <Check
-                    className="absolute inset-0 m-auto h-3.5 w-3.5"
-                    style={{ color: readableTextOn(c) }}
-                    strokeWidth={3}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
   );
 }
 
