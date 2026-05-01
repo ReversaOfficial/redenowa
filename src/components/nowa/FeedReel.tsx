@@ -141,6 +141,7 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: followKey });
       const prev = qc.getQueryData<FollowState>(followKey);
+      const wasFollowing = !!prev?.is_following;
       if (prev) {
         qc.setQueryData<FollowState>(followKey, {
           ...prev,
@@ -148,11 +149,25 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
           followers: prev.followers + (prev.is_following ? -1 : 1),
         });
       }
-      return { prev };
+      return { prev, wasFollowing };
     },
-    onError: (_e, _v, ctx) => {
+    onSuccess: (_d, _v, ctx) => {
+      if (ctx?.wasFollowing) {
+        toast(`Você deixou de seguir @${post.author.handle}`);
+      } else {
+        toast.success(`Seguindo @${post.author.handle}`, {
+          description: "Você verá mais posts dele no seu feed.",
+        });
+      }
+    },
+    onError: (e, _v, ctx) => {
       if (ctx?.prev) qc.setQueryData(followKey, ctx.prev);
-      toast.error("Não foi possível atualizar");
+      toast.error(
+        ctx?.wasFollowing
+          ? "Não foi possível deixar de seguir"
+          : "Não foi possível seguir agora",
+        { description: e instanceof Error ? e.message : "Tente novamente em instantes." }
+      );
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["follow-state", post.author_id] });
