@@ -198,6 +198,7 @@ const ReelSlide = memo(function ReelSlide({
   const [showHeart, setShowHeart] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [muted, setMuted] = useState(true);
+  const [reportOpen, setReportOpen] = useState(false);
   const lastTapRef = useRef(0);
   const videoElRef = useRef<HTMLVideoElement>(null);
 
