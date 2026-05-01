@@ -187,6 +187,7 @@ function slidePropsAreEqual(
     a.caption === b.caption &&
     a.created_at === b.created_at &&
     a.flagged === b.flagged &&
+    a.close_friends_only === b.close_friends_only &&
     a.author_id === b.author_id &&
     a.author.handle === b.author.handle &&
     a.author.display_name === b.author.display_name &&
