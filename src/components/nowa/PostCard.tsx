@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo } from "react";
+import { MentionText } from "./MentionText";
 import { Heart, MessageCircle, Share2, Bookmark } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
