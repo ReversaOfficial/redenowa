@@ -15,6 +15,11 @@ export type Profile = {
   display_name: string;
   avatar_url: string | null;
   bio: string | null;
+  city: string | null;
+  country: string | null;
+  theme_bg: string | null;
+  theme_ring: string | null;
+  onboarded_at: string | null;
 };
 
 type AuthContextValue = {
