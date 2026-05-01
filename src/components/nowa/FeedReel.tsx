@@ -126,6 +126,16 @@ export function FeedReel({ posts }: { posts: Post[] }) {
         />
       ))}
 
+      {/* Branding overlay */}
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),12px)] pb-2">
+        <div>
+          <h1 className="text-lg font-bold tracking-tight text-white drop-shadow-md">NOWA</h1>
+          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/60 drop-shadow-sm">
+            Compartilhe seus momentos
+          </p>
+        </div>
+      </div>
+
       <div
         ref={containerRef}
         className="h-[100dvh] w-full overflow-y-auto snap-y snap-mandatory bg-black"
