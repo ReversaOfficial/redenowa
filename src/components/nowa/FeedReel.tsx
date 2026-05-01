@@ -378,6 +378,12 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
           </p>
         )}
       </div>
+
+      <CommentsPanel
+        postId={post.id}
+        open={commentsOpen}
+        onClose={() => setCommentsOpen(false)}
+      />
     </div>
   );
 }
