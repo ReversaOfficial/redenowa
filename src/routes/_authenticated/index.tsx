@@ -105,7 +105,11 @@ function FeedPage() {
 
   return (
     <MobileShell fullBleed>
+      <div className="absolute top-4 right-4 z-30">
+        <NotificationBell onClick={() => setNotifOpen(true)} />
+      </div>
       <FeedReel posts={fresh} />
+      <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
     </MobileShell>
   );
 }
