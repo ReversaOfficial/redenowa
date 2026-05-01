@@ -333,12 +333,14 @@ export async function createPost(args: {
   mediaUrl: string;
   caption: string;
   mediaType?: "image" | "video";
+  closeFriendsOnly?: boolean;
 }): Promise<string> {
   const { data, error } = await supabase.from("posts").insert({
     author_id: args.authorId,
     media_url: args.mediaUrl,
     caption: args.caption || null,
     media_type: args.mediaType ?? "image",
+    close_friends_only: args.closeFriendsOnly ?? false,
   }).select("id").single();
   if (error) throw error;
   return data.id;
