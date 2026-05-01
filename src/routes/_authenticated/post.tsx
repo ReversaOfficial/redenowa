@@ -14,8 +14,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
 import { MobileShell } from "@/components/nowa/MobileShell";
+import { CameraErrorFallback } from "@/components/nowa/CameraErrorFallback";
 import { useAuth } from "@/lib/auth-context";
 import { createPost, uploadMedia } from "@/lib/posts-api";
+import { classifyCameraError, type CameraErrorInfo } from "@/lib/camera-errors";
 
 const CAPTION_MIN = 3;
 const CAPTION_MAX = 80;
@@ -56,9 +58,10 @@ function PostPage() {
   const [facing, setFacing] = useState<"user" | "environment">("environment");
   const [snap, setSnap] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<CameraErrorInfo | null>(null);
   const [ready, setReady] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
     if (stage !== "camera") return;
@@ -70,6 +73,9 @@ function PostPage() {
         setReady(false);
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((t) => t.stop());
+        }
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("MediaDevices not supported");
         }
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: facing },
@@ -86,9 +92,10 @@ function PostPage() {
           setReady(true);
         }
       } catch (e) {
-        const msg =
-          e instanceof Error ? e.message : "Não foi possível acessar a câmera.";
-        setError(msg);
+        if (cancelled) return;
+        const info = classifyCameraError(e);
+        setError(info);
+        toast.error(info.title, { description: info.message });
       }
     }
     start();
@@ -100,7 +107,7 @@ function PostPage() {
         streamRef.current = null;
       }
     };
-  }, [facing, stage]);
+  }, [facing, stage, retryToken]);
 
   function capture() {
     const video = videoRef.current;
@@ -194,21 +201,13 @@ function PostPage() {
             )}
 
             {error && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black px-8 text-center">
-                <CameraIcon className="mb-4 h-10 w-10 text-primary" />
-                <h2 className="text-lg font-bold">Câmera necessária</h2>
-                <p className="mt-2 max-w-xs text-sm text-white/70">
-                  Permita o acesso à câmera. NOWA não aceita uploads — apenas o
-                  momento agora.
-                </p>
-                <p className="mt-4 text-xs text-white/40">{error}</p>
-                <button
-                  onClick={() => navigate({ to: "/" })}
-                  className="nowa-tap mt-6 rounded-full bg-white px-5 py-2 text-sm font-semibold text-black"
-                >
-                  Voltar
-                </button>
-              </div>
+              <CameraErrorFallback
+                info={error}
+                onRetry={() => setRetryToken((n) => n + 1)}
+                onCancel={() => navigate({ to: "/" })}
+                cancelLabel="Voltar ao feed"
+                onDark
+              />
             )}
 
             <div className="absolute inset-x-0 bottom-0 z-20 pb-[max(env(safe-area-inset-bottom),24px)] pt-6">

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { X, RotateCcw, Camera as CameraIcon, Check, ArrowLeft } from "lucide-react";
+import { CameraErrorFallback } from "@/components/nowa/CameraErrorFallback";
+import { classifyCameraError, type CameraErrorInfo } from "@/lib/camera-errors";
 
 type Props = {
   open: boolean;
@@ -22,8 +25,9 @@ export function AvatarCameraDialog({ open, onClose, onCapture }: Props) {
   const streamRef = useRef<MediaStream | null>(null);
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [snap, setSnap] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<CameraErrorInfo | null>(null);
   const [ready, setReady] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
     if (!open || snap) return;
@@ -35,6 +39,9 @@ export function AvatarCameraDialog({ open, onClose, onCapture }: Props) {
         setReady(false);
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((t) => t.stop());
+        }
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("MediaDevices not supported");
         }
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: facing },
@@ -51,9 +58,10 @@ export function AvatarCameraDialog({ open, onClose, onCapture }: Props) {
           setReady(true);
         }
       } catch (e) {
-        const msg =
-          e instanceof Error ? e.message : "Não foi possível acessar a câmera.";
-        setError(msg);
+        if (cancelled) return;
+        const info = classifyCameraError(e);
+        setError(info);
+        toast.error(info.title, { description: info.message });
       }
     }
     start();
@@ -65,7 +73,7 @@ export function AvatarCameraDialog({ open, onClose, onCapture }: Props) {
         streamRef.current = null;
       }
     };
-  }, [facing, open, snap]);
+  }, [facing, open, snap, retryToken]);
 
   function close() {
     if (streamRef.current) {
@@ -177,14 +185,13 @@ export function AvatarCameraDialog({ open, onClose, onCapture }: Props) {
         )}
 
         {error && !snap && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
-            <CameraIcon className="mb-4 h-10 w-10 text-primary" />
-            <h2 className="text-lg font-bold">Câmera necessária</h2>
-            <p className="mt-2 max-w-xs text-sm text-white/70">
-              Permita o acesso à câmera. NOWA não aceita uploads — só o agora.
-            </p>
-            <p className="mt-4 text-xs text-white/40">{error}</p>
-          </div>
+          <CameraErrorFallback
+            info={error}
+            onRetry={() => setRetryToken((n) => n + 1)}
+            onCancel={close}
+            cancelLabel="Fechar"
+            onDark
+          />
         )}
       </div>
 
