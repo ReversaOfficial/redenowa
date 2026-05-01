@@ -224,6 +224,17 @@ function AuthPage() {
           {mode === "signup" && (
             <>
               <Field
+                label="Nome de usuário (@)"
+                type="text"
+                value={handle}
+                onChange={(v) => setHandle(v.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                placeholder="seu_usuario"
+                autoComplete="username"
+                required
+                minLength={3}
+                maxLength={20}
+              />
+              <Field
                 label="Nome"
                 type="text"
                 value={name}
