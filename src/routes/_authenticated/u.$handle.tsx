@@ -2,6 +2,8 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Grid3x3, Loader2, UserPlus, UserCheck } from "lucide-react";
 import { toast } from "sonner";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { TopBar } from "@/components/nowa/TopBar";
 import { Avatar } from "@/components/nowa/PostCard";
@@ -83,6 +85,34 @@ function PublicProfilePage() {
       qc.invalidateQueries({ queryKey: ["follow-state", profile?.id] });
     },
   });
+
+  // Realtime: refresh follow stats/button when this profile gains or loses
+  // followers, or when the viewer follows/unfollows anyone.
+  useEffect(() => {
+    if (!profile?.id) return;
+    const channel = supabase
+      .channel(`follows:${profile.id}:${user?.id ?? "anon"}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${profile.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["follow-state", profile.id] });
+        },
+      );
+    if (user?.id) {
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["follow-state", profile.id] });
+        },
+      );
+    }
+    channel.subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.id, user?.id, qc]);
 
   return (
     <MobileShell>

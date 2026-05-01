@@ -14,10 +14,32 @@ import {
   type Post,
 } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/integrations/supabase/client";
 
 export function FeedReel({ posts }: { posts: Post[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const { user } = useAuth();
+  const qc = useQueryClient();
+
+  // Realtime: when the current user follows/unfollows anyone, refresh all
+  // cached follow states so feed buttons stay in sync across slides.
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(`follows-self:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["follow-state"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, qc]);
 
   // Track which slide is centered for active state
   useEffect(() => {
