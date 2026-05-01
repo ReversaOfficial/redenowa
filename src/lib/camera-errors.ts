@@ -191,8 +191,11 @@ export async function getCameraPermissionState(): Promise<
   "granted" | "denied" | "prompt" | "unknown"
 > {
   try {
-    // @ts-expect-error: 'camera' não está no DOM lib em todos os TS targets
-    const status = await navigator.permissions?.query?.({ name: "camera" });
+    const status = await (
+      navigator.permissions as unknown as {
+        query?: (d: { name: string }) => Promise<{ state: string }>;
+      }
+    )?.query?.({ name: "camera" });
     if (!status) return "unknown";
     return (status.state as "granted" | "denied" | "prompt") ?? "unknown";
   } catch {
