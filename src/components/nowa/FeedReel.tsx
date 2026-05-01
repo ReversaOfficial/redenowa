@@ -470,7 +470,7 @@ const ReelSlide = memo(function ReelSlide({
         <video
           ref={videoElRef}
           src={post.media_url}
-          loop={!hasMultiple}
+          loop={false}
           muted={muted}
           playsInline
           preload={nearActive ? "auto" : "metadata"}
