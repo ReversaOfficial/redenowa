@@ -74,9 +74,19 @@ function shape(rows: RawPost[], myId: string | null): Post[] {
     }));
 }
 
+async function fetchBlockedIds(myId: string | null): Promise<Set<string>> {
+  if (!myId) return new Set();
+  const { data } = await supabase
+    .from("blocks")
+    .select("blocked_id")
+    .eq("blocker_id", myId);
+  return new Set((data ?? []).map((b) => b.blocked_id));
+}
+
 export async function fetchActivePosts(myId: string | null): Promise<Post[]> {
   const cutoff = new Date(Date.now() - 24 * HOUR).toISOString();
-  const { data, error } = await supabase
+  const blocked = await fetchBlockedIds(myId);
+  let q = supabase
     .from("posts")
     .select(
       "id, author_id, media_url, media_type, caption, created_at, profiles!posts_author_id_fkey(id, handle, display_name, avatar_url), likes(user_id)"
@@ -84,6 +94,10 @@ export async function fetchActivePosts(myId: string | null): Promise<Post[]> {
     .gt("created_at", cutoff)
     .order("created_at", { ascending: false })
     .limit(100);
+  if (blocked.size > 0) {
+    q = q.not("author_id", "in", `(${[...blocked].join(",")})`);
+  }
+  const { data, error } = await q;
   if (error) throw error;
   return shape((data ?? []) as unknown as RawPost[], myId);
 }
