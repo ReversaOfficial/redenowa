@@ -81,6 +81,7 @@ function OnboardingPage() {
     const parsed = schema.safeParse({
       display_name: name,
       city,
+      state,
       country,
     });
     if (!parsed.success) {
