@@ -56,6 +56,7 @@ function OnboardingPage() {
     if (!profile) return;
     setName(profile.display_name ?? "");
     setCity(profile.city ?? "");
+    setState(profile.state ?? "");
     setCountry(profile.country ?? "");
     if (profile.theme_bg) setBg(profile.theme_bg);
     if (profile.theme_ring) setRing(profile.theme_ring);
