@@ -108,6 +108,63 @@ export async function fetchProfileByHandle(
   return data;
 }
 
+export type FollowState = {
+  followers: number;
+  following: number;
+  is_following: boolean;
+};
+
+export async function fetchFollowState(
+  targetId: string,
+  viewerId: string | null
+): Promise<FollowState> {
+  const [{ count: followers }, { count: following }, mine] = await Promise.all([
+    supabase
+      .from("follows")
+      .select("*", { count: "exact", head: true })
+      .eq("following_id", targetId),
+    supabase
+      .from("follows")
+      .select("*", { count: "exact", head: true })
+      .eq("follower_id", targetId),
+    viewerId && viewerId !== targetId
+      ? supabase
+          .from("follows")
+          .select("follower_id")
+          .eq("follower_id", viewerId)
+          .eq("following_id", targetId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  return {
+    followers: followers ?? 0,
+    following: following ?? 0,
+    is_following: !!(mine as { data: unknown }).data,
+  };
+}
+
+export async function toggleFollow(
+  targetId: string,
+  currentlyFollowing: boolean
+) {
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id;
+  if (!uid) throw new Error("Not authenticated");
+  if (uid === targetId) throw new Error("Cannot follow yourself");
+  if (currentlyFollowing) {
+    const { error } = await supabase
+      .from("follows")
+      .delete()
+      .eq("follower_id", uid)
+      .eq("following_id", targetId);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("follows")
+      .insert({ follower_id: uid, following_id: targetId });
+    if (error) throw error;
+  }
+
 export async function fetchUserPosts(
   userId: string,
   active: boolean
