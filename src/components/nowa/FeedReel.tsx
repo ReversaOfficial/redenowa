@@ -96,6 +96,22 @@ export function FeedReel({ posts }: { posts: Post[] }) {
     return () => obs.disconnect();
   }, [groups.length]);
 
+  const scrollToGroup = useCallback((idx: number) => {
+    const el = containerRef.current;
+    if (!el) return;
+    const target = el.querySelector<HTMLElement>(`[data-group-idx="${idx}"]`);
+    target?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  const handleGroupFinished = useCallback((gi: number) => {
+    if (gi + 1 < groups.length) {
+      scrollToGroup(gi + 1);
+    } else {
+      // Loop back to first group
+      scrollToGroup(0);
+    }
+  }, [groups.length, scrollToGroup]);
+
   const windowStart = Math.max(0, activeGroupIdx - WINDOW);
   const windowEnd = Math.min(groups.length - 1, activeGroupIdx + WINDOW);
 
