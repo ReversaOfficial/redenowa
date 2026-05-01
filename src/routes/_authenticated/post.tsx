@@ -20,6 +20,7 @@ import { CameraErrorFallback } from "@/components/nowa/CameraErrorFallback";
 import { useAuth } from "@/lib/auth-context";
 import { createPost, uploadMedia } from "@/lib/posts-api";
 import { classifyCameraError, type CameraErrorInfo } from "@/lib/camera-errors";
+import { moderateImage } from "@/server/moderate.functions";
 
 const CAPTION_MIN = 3;
 const CAPTION_MAX = 80;
@@ -50,6 +51,34 @@ function dataURLtoBlob(dataUrl: string): Blob {
   const arr = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
   return new Blob([arr], { type: mime });
+}
+
+async function extractFrameFromBlob(blob: Blob): Promise<string> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    const url = URL.createObjectURL(blob);
+    video.src = url;
+    video.onloadeddata = () => {
+      video.currentTime = 0.1;
+    };
+    video.onseeked = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.min(video.videoWidth, 640);
+      canvas.height = Math.round(canvas.width * (video.videoHeight / video.videoWidth));
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+      URL.revokeObjectURL(url);
+      resolve(dataUrl);
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve("data:image/jpeg;base64,");
+    };
+    video.load();
+  });
 }
 
 function formatTimer(ms: number) {
@@ -237,6 +266,33 @@ function PostPage() {
         blob = dataURLtoBlob(snap!);
         ext = "jpg";
         mediaType = "image";
+      }
+
+      // Content moderation — analyze image/frame before uploading
+      try {
+        let base64ForModeration: string;
+        if (mediaType === "video") {
+          // Extract first frame from video for moderation
+          base64ForModeration = snap ?? await extractFrameFromBlob(blob);
+        } else {
+          base64ForModeration = snap!;
+        }
+        // Ensure it's a proper data URL
+        if (!base64ForModeration.startsWith("data:")) {
+          base64ForModeration = `data:image/jpeg;base64,${base64ForModeration}`;
+        }
+        const modResult = await moderateImage({ data: { imageBase64: base64ForModeration } });
+        if (!modResult.safe) {
+          toast.error("Conteúdo impróprio detectado", {
+            description: modResult.reason || "Este conteúdo viola nossas diretrizes da comunidade.",
+            duration: 6000,
+          });
+          setPublishing(false);
+          return;
+        }
+      } catch (modErr) {
+        // If moderation fails, allow posting (fail open)
+        console.warn("[moderation] check failed, allowing:", modErr);
       }
 
       const url = await uploadMedia(user.id, blob, ext);
