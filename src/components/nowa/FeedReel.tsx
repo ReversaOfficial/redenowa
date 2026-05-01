@@ -14,6 +14,7 @@ import {
   type Post,
 } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/integrations/supabase/client";
 
 export function FeedReel({ posts }: { posts: Post[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
