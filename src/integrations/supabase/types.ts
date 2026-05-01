@@ -154,6 +154,7 @@ export type Database = {
           handle: string
           id: string
           onboarded_at: string | null
+          state: string | null
           theme_bg: string | null
           theme_ring: string | null
           updated_at: string
@@ -169,6 +170,7 @@ export type Database = {
           handle: string
           id: string
           onboarded_at?: string | null
+          state?: string | null
           theme_bg?: string | null
           theme_ring?: string | null
           updated_at?: string
@@ -184,6 +186,7 @@ export type Database = {
           handle?: string
           id?: string
           onboarded_at?: string | null
+          state?: string | null
           theme_bg?: string | null
           theme_ring?: string | null
           updated_at?: string
