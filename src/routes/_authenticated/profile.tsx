@@ -242,6 +242,9 @@ function ProfilePage() {
                 <span className="absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-medium text-white">
                   {timeRemaining(p.created_at)}
                 </span>
+                {p.close_friends_only && (
+                  <Heart className="absolute top-1 right-1 h-4 w-4 fill-emerald-500 text-emerald-500 drop-shadow" strokeWidth={0} />
+                )}
               </div>
             ))}
           </div>
