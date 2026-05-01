@@ -233,15 +233,24 @@ function AuthPage() {
                   required
                 />
                 <Field
-                  label="País"
+                  label="Estado"
                   type="text"
-                  value={country}
-                  onChange={setCountry}
-                  placeholder="Brasil"
-                  autoComplete="country-name"
+                  value={state}
+                  onChange={setState}
+                  placeholder="Rio Grande do Sul"
+                  autoComplete="address-level1"
                   required
                 />
               </div>
+              <Field
+                label="País"
+                type="text"
+                value={country}
+                onChange={setCountry}
+                placeholder="Brasil"
+                autoComplete="country-name"
+                required
+              />
               <Field
                 label="Data de nascimento"
                 type="date"
