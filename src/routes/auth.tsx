@@ -234,6 +234,15 @@ function AuthPage() {
                   required
                 />
               </div>
+              <Field
+                label="Data de nascimento"
+                type="date"
+                value={dateOfBirth}
+                onChange={setDateOfBirth}
+                placeholder=""
+                autoComplete="bday"
+                required
+              />
             </>
           )}
           <Field
