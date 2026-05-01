@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { compressAvatar } from "@/lib/image-compress";
 import { useSyncExternalStore } from "react";
 
 const HOUR = 60 * 60 * 1000;
@@ -326,11 +327,13 @@ export async function createPost(args: {
 export async function uploadAvatarAndSave(
   userId: string,
   blob: Blob
-): Promise<string> {
+): Promise<{ url: string; originalSize: number; finalSize: number }> {
+  // Comprime/redimensiona client-side antes de subir (avatar 512x512 JPEG)
+  const compressed = await compressAvatar(blob);
   const filename = `avatars/${userId}/${Date.now()}.jpg`;
   const { error: upErr } = await supabase.storage
     .from("nowa-media")
-    .upload(filename, blob, {
+    .upload(filename, compressed.blob, {
       contentType: "image/jpeg",
       cacheControl: "31536000",
       upsert: false,
@@ -343,7 +346,11 @@ export async function uploadAvatarAndSave(
     .update({ avatar_url: url })
     .eq("id", userId);
   if (updErr) throw updErr;
-  return url;
+  return {
+    url,
+    originalSize: compressed.originalSize,
+    finalSize: compressed.size,
+  };
 }
 
 // Tiny tick store so countdowns refresh every minute
