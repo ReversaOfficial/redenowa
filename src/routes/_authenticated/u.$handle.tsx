@@ -247,10 +247,10 @@ function PublicProfilePage() {
                   }}
                 >
                   @{profile.handle}
-                  {profile.city || profile.country ? (
+                  {profile.city || profile.state || profile.country ? (
                     <span className="ml-1">
                       ·{" "}
-                      {[profile.city, profile.country]
+                      {[profile.city, profile.state, profile.country]
                         .filter(Boolean)
                         .join(", ")}
                     </span>
