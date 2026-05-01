@@ -549,6 +549,11 @@ const ReelSlide = memo(function ReelSlide({
         open={commentsOpen}
         onClose={handleCloseComments}
       />
+      <ReportDialog
+        postId={postId}
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+      />
     </div>
   );
 }, slidePropsAreEqual);
