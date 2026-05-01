@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { X, RotateCcw, Camera as CameraIcon, Check, ArrowLeft } from "lucide-react";
+import { CameraErrorFallback } from "@/components/nowa/CameraErrorFallback";
+import { classifyCameraError, type CameraErrorInfo } from "@/lib/camera-errors";
 
 type Props = {
   open: boolean;
@@ -177,14 +180,13 @@ export function AvatarCameraDialog({ open, onClose, onCapture }: Props) {
         )}
 
         {error && !snap && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
-            <CameraIcon className="mb-4 h-10 w-10 text-primary" />
-            <h2 className="text-lg font-bold">Câmera necessária</h2>
-            <p className="mt-2 max-w-xs text-sm text-white/70">
-              Permita o acesso à câmera. NOWA não aceita uploads — só o agora.
-            </p>
-            <p className="mt-4 text-xs text-white/40">{error}</p>
-          </div>
+          <CameraErrorFallback
+            info={error}
+            onRetry={() => setRetryToken((n) => n + 1)}
+            onCancel={close}
+            cancelLabel="Fechar"
+            onDark
+          />
         )}
       </div>
 
