@@ -160,9 +160,9 @@ function GroupSlide({
   const post = group.posts[Math.min(currentPostIdx, group.posts.length - 1)];
   const total = group.posts.length;
 
-  // Auto-advance for images (5s), videos play to end then advance
+  // Auto-advance: images 5s, videos advance on ended (handled via onVideoEnded)
   useEffect(() => {
-    if (!active || total <= 1) return;
+    if (!active) return;
     const isVideo = post.media_type === "video";
     if (!isVideo) {
       timerRef.current = setTimeout(() => {
@@ -318,11 +318,11 @@ const ReelSlide = memo(function ReelSlide({
   // Video ended → advance to next post in group
   useEffect(() => {
     const el = videoElRef.current;
-    if (!el || !isVideo || !active || !hasMultiple) return;
+    if (!el || !isVideo || !active) return;
     const handler = () => onVideoEnded?.();
     el.addEventListener("ended", handler);
     return () => el.removeEventListener("ended", handler);
-  }, [isVideo, active, hasMultiple, onVideoEnded]);
+  }, [isVideo, active, onVideoEnded]);
 
   // Comments count
   const { data: commentsCount = 0 } = useQuery({
