@@ -112,6 +112,8 @@ export type Database = {
           author_id: string
           caption: string | null
           created_at: string
+          flagged: boolean
+          flagged_reason: string | null
           id: string
           media_type: string
           media_url: string
@@ -120,6 +122,8 @@ export type Database = {
           author_id: string
           caption?: string | null
           created_at?: string
+          flagged?: boolean
+          flagged_reason?: string | null
           id?: string
           media_type?: string
           media_url: string
@@ -128,6 +132,8 @@ export type Database = {
           author_id?: string
           caption?: string | null
           created_at?: string
+          flagged?: boolean
+          flagged_reason?: string | null
           id?: string
           media_type?: string
           media_url?: string
