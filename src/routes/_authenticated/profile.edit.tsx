@@ -221,6 +221,12 @@ function EditProfilePage() {
           {saving ? "Salvando..." : "Salvar"}
         </button>
       </form>
+
+      <AvatarCameraDialog
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={onAvatarCaptured}
+      />
     </MobileShell>
   );
 }
