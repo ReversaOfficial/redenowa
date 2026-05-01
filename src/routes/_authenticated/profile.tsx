@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LogOut, Grid3x3, Loader2, Pencil, Clock, Lock } from "lucide-react";
+import { LogOut, Grid3x3, Loader2, Pencil, Clock, Lock, Heart } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { TopBar } from "@/components/nowa/TopBar";
 import { Avatar } from "@/components/nowa/PostCard";
@@ -10,6 +10,7 @@ import { fetchUserPosts, timeRemaining, useMinuteTick } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { readableTextOn, withAlpha } from "@/lib/color";
+import { CloseFriendsManager } from "@/components/nowa/CloseFriendsManager";
 
 const HOUR_MS = 60 * 60 * 1000;
 
