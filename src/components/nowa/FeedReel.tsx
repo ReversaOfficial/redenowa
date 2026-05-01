@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Avatar } from "./PostCard";
 import { CommentsPanel } from "./CommentsPanel";
 import {
+  fetchComments,
   fetchCommentsCount,
   fetchFollowState,
   toggleFollow,
@@ -84,6 +85,28 @@ export function FeedReel({ posts }: { posts: Post[] }) {
     }
     return urls;
   }, [activeIndex, posts]);
+
+  // Prefetch comments count + comments data for all slides in the render window
+  useEffect(() => {
+    const windowStart = Math.max(0, activeIndex - WINDOW);
+    const windowEnd = Math.min(posts.length - 1, activeIndex + WINDOW);
+    for (let i = windowStart; i <= windowEnd; i++) {
+      const postId = posts[i].id;
+      qc.prefetchQuery({
+        queryKey: ["comments-count", postId],
+        queryFn: () => fetchCommentsCount(postId),
+        staleTime: 30_000,
+      });
+      // Prefetch full comments for adjacent slides (±1) so modal opens instantly
+      if (Math.abs(i - activeIndex) <= 1) {
+        qc.prefetchQuery({
+          queryKey: ["comments", postId],
+          queryFn: () => fetchComments(postId),
+          staleTime: 30_000,
+        });
+      }
+    }
+  }, [activeIndex, posts, qc]);
 
   // Determine which slides are in the render window
   const windowStart = Math.max(0, activeIndex - WINDOW);
@@ -173,7 +196,7 @@ const ReelSlide = memo(function ReelSlide({
   const { data: commentsCount = 0 } = useQuery({
     queryKey: ["comments-count", post.id],
     queryFn: () => fetchCommentsCount(post.id),
-    enabled: active,
+    enabled: nearActive,
     staleTime: 30_000,
   });
 
