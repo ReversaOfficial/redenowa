@@ -497,6 +497,8 @@ export async function addComment(postId: string, content: string) {
     .select("id")
     .single();
   if (error) throw error;
+  // Fire-and-forget mention notifications
+  notifyMentions({ text: trimmed, actorId: uid, postId, commentId: data.id }).catch(() => {});
   return data.id as string;
 }
 
