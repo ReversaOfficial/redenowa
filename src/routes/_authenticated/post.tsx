@@ -442,7 +442,16 @@ function PostPage() {
               />
             )}
 
-            <div className="absolute inset-x-0 bottom-0 z-20 pb-[max(env(safe-area-inset-bottom),24px)] pt-6">
+            {/* Mic denied badge */}
+            {micDenied && ready && !error && (
+              <div className="absolute left-4 bottom-[calc(max(env(safe-area-inset-bottom),24px)+180px)] z-30">
+                <div className="flex items-center gap-1.5 rounded-full bg-red-500/90 px-3 py-1.5 backdrop-blur">
+                  <MicOff className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
+                  <span className="text-[11px] font-semibold text-white">Sem áudio</span>
+                </div>
+              </div>
+            )}
+
               {/* Mode switcher */}
               {!recording && (
                 <div className="mb-4 flex items-center justify-center gap-6">
