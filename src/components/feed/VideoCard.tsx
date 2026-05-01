@@ -38,7 +38,10 @@ export function VideoCard({
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
+  const isVideo = video.media_type === "video";
+
   useEffect(() => {
+    if (!isVideo) return;
     const el = videoRef.current;
     if (!el) return;
     if (isActive) {
@@ -48,13 +51,14 @@ export function VideoCard({
       el.pause();
       setIsPlaying(false);
     }
-  }, [isActive]);
+  }, [isActive, isVideo]);
 
   useEffect(() => {
     if (videoRef.current) videoRef.current.muted = isMuted;
   }, [isMuted]);
 
   const togglePlay = useCallback(() => {
+    if (!isVideo) return;
     const el = videoRef.current;
     if (!el) return;
     if (el.paused) {
@@ -67,7 +71,7 @@ export function VideoCard({
       setShowPlayIcon(true);
       setTimeout(() => setShowPlayIcon(false), 900);
     }
-  }, []);
+  }, [isVideo]);
 
   const doLike = useCallback(async () => {
     if (!user) return;
@@ -88,10 +92,10 @@ export function VideoCard({
     if (now - lastTapRef.current < 300) {
       if (!liked) doLike();
     } else {
-      togglePlay();
+      if (isVideo) togglePlay();
     }
     lastTapRef.current = now;
-  }, [liked, doLike, togglePlay]);
+  }, [liked, doLike, togglePlay, isVideo]);
 
   const handleLike = useCallback(async () => {
     if (!user) return;
@@ -122,17 +126,26 @@ export function VideoCard({
 
   return (
     <div className="relative h-[100dvh] w-full bg-black overflow-hidden">
-      <video
-        ref={videoRef}
-        src={video.media_url}
-        className="absolute inset-0 h-full w-full object-cover"
-        loop
-        playsInline
-        muted={isMuted}
-        preload="auto"
-      />
+      {isVideo ? (
+        <video
+          ref={videoRef}
+          src={video.media_url}
+          className="absolute inset-0 h-full w-full object-cover"
+          loop
+          playsInline
+          muted={isMuted}
+          preload="auto"
+        />
+      ) : (
+        <img
+          src={video.media_url}
+          alt={video.caption ?? "post"}
+          className="absolute inset-0 h-full w-full object-cover"
+          draggable={false}
+        />
+      )}
 
-      {/* Double-tap / tap overlay */}
+      {/* Tap overlay */}
       <div
         className="absolute inset-0 z-10"
         onClick={(e) => {
@@ -156,9 +169,9 @@ export function VideoCard({
         )}
       </AnimatePresence>
 
-      {/* Pause icon */}
+      {/* Pause icon (video only) */}
       <AnimatePresence>
-        {showPlayIcon && (
+        {isVideo && showPlayIcon && (
           <motion.div
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 0.7 }}
@@ -216,21 +229,23 @@ export function VideoCard({
           </button>
         </div>
 
-        {/* Mute */}
-        <button
-          className="text-white mt-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleMute();
-          }}
-          aria-label="mute/unmute"
-        >
-          {isMuted ? (
-            <VolumeX className="h-6 w-6" />
-          ) : (
-            <Volume2 className="h-6 w-6" />
-          )}
-        </button>
+        {/* Mute (video only) */}
+        {isVideo && (
+          <button
+            className="text-white mt-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleMute();
+            }}
+            aria-label="mute/unmute"
+          >
+            {isMuted ? (
+              <VolumeX className="h-6 w-6" />
+            ) : (
+              <Volume2 className="h-6 w-6" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Bottom info */}
