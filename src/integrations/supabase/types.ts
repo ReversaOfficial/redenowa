@@ -199,15 +199,89 @@ export type Database = {
         }
         Relationships: []
       }
+      reports: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          details: string | null
+          id: string
+          post_id: string
+          reason: Database["public"]["Enums"]["report_reason"]
+          reporter_id: string
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["report_status"]
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          post_id: string
+          reason: Database["public"]["Enums"]["report_reason"]
+          reporter_id: string
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          post_id?: string
+          reason?: Database["public"]["Enums"]["report_reason"]
+          reporter_id?: string
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
+      report_reason:
+        | "nudity"
+        | "violence"
+        | "harassment"
+        | "spam"
+        | "hate_speech"
+        | "misinformation"
+        | "underage"
+        | "other"
+      report_status:
+        | "pending"
+        | "reviewed_valid"
+        | "reviewed_invalid"
+        | "actioned"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -334,6 +408,24 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+      report_reason: [
+        "nudity",
+        "violence",
+        "harassment",
+        "spam",
+        "hate_speech",
+        "misinformation",
+        "underage",
+        "other",
+      ],
+      report_status: [
+        "pending",
+        "reviewed_valid",
+        "reviewed_invalid",
+        "actioned",
+      ],
+    },
   },
 } as const

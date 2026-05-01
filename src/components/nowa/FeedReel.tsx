@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, useMemo, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
-import { Heart, MessageCircle, Share2, UserPlus, UserCheck, Clock, Loader2, Volume2, VolumeX, ShieldAlert } from "lucide-react";
+import { Heart, MessageCircle, Share2, UserPlus, UserCheck, Clock, Loader2, Volume2, VolumeX, ShieldAlert, Flag } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Avatar } from "./PostCard";
 import { CommentsPanel } from "./CommentsPanel";
+import { ReportDialog } from "./ReportDialog";
 import {
   fetchComments,
   fetchCommentsCount,
@@ -197,6 +198,7 @@ const ReelSlide = memo(function ReelSlide({
   const [showHeart, setShowHeart] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [muted, setMuted] = useState(true);
+  const [reportOpen, setReportOpen] = useState(false);
   const lastTapRef = useRef(0);
   const videoElRef = useRef<HTMLVideoElement>(null);
 
@@ -467,6 +469,17 @@ const ReelSlide = memo(function ReelSlide({
           <Share2 className="h-8 w-8 text-white drop-shadow-lg" strokeWidth={2} />
         </button>
 
+        {!isMine && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setReportOpen(true); }}
+            className="flex flex-col items-center gap-1"
+            aria-label="Denunciar"
+          >
+            <Flag className="h-7 w-7 text-white drop-shadow-lg" strokeWidth={2} />
+          </button>
+        )}
+
         {isVideo && (
           <button
             type="button"
@@ -535,6 +548,11 @@ const ReelSlide = memo(function ReelSlide({
         postId={postId}
         open={commentsOpen}
         onClose={handleCloseComments}
+      />
+      <ReportDialog
+        postId={postId}
+        open={reportOpen}
+        onOpenChange={setReportOpen}
       />
     </div>
   );
