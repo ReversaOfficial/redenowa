@@ -288,7 +288,17 @@ function PublicProfilePage() {
               <span className="text-sm font-semibold">Posts ativos</span>
             </div>
 
-            {loadingPosts ? (
+            {block?.is_blocked ? (
+              <div className="px-6 py-16 text-center">
+                <Ban className="mx-auto h-8 w-8 text-muted-foreground" />
+                <p className="mt-3 text-base font-semibold text-foreground">
+                  Você bloqueou este usuário.
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Os posts dele não aparecem para você.
+                </p>
+              </div>
+            ) : loadingPosts ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
