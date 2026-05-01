@@ -89,6 +89,39 @@ function PublicProfilePage() {
     },
   });
 
+  // Block state
+  const blockKey = ["block-state", profile?.id, user?.id ?? null] as const;
+  const { data: block } = useQuery({
+    queryKey: blockKey,
+    queryFn: () => fetchBlockState(profile!.id, user?.id ?? null),
+    enabled: !!profile?.id && !!user?.id,
+  });
+
+  const blockMutation = useMutation({
+    mutationFn: () => toggleBlock(profile!.id, !!block?.is_blocked),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: blockKey });
+      const prev = qc.getQueryData<BlockState>(blockKey);
+      qc.setQueryData<BlockState>(blockKey, {
+        is_blocked: !prev?.is_blocked,
+      });
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(blockKey, ctx.prev);
+      toast.error("Não foi possível atualizar bloqueio");
+    },
+    onSuccess: () => {
+      toast.success(block?.is_blocked ? "Usuário desbloqueado" : "Usuário bloqueado");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["block-state", profile?.id] });
+      qc.invalidateQueries({ queryKey: ["follow-state", profile?.id] });
+      qc.invalidateQueries({ queryKey: ["posts"] });
+      qc.invalidateQueries({ queryKey: ["feed"] });
+    },
+  });
+
   // Realtime: refresh follow stats/button when this profile gains or loses
   // followers, or when the viewer follows/unfollows anyone.
   useEffect(() => {
