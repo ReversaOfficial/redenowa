@@ -1,4 +1,10 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useLocation,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,13 +22,25 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthGuard() {
-  const { session, loading } = useAuth();
+  const { session, profile, loading } = useAuth();
   const [showFallback, setShowFallback] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const t = setTimeout(() => setShowFallback(true), 250);
     return () => clearTimeout(t);
   }, []);
+
+  // Força onboarding pós-cadastro até o usuário concluir.
+  useEffect(() => {
+    if (loading) return;
+    if (!profile) return;
+    if (location.pathname === "/onboarding") return;
+    if (!profile.onboarded_at) {
+      navigate({ to: "/onboarding", replace: true });
+    }
+  }, [loading, profile, location.pathname, navigate]);
 
   if (loading || !session) {
     return (
@@ -36,3 +54,4 @@ function AuthGuard() {
 
   return <Outlet />;
 }
+
