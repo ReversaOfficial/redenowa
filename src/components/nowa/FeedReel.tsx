@@ -246,12 +246,25 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
 
   return (
     <div className="relative h-full w-full" onClick={handleTap}>
-      <img
-        src={post.media_url}
-        alt={post.caption ?? ""}
-        className="absolute inset-0 h-full w-full object-cover"
-        draggable={false}
-      />
+      {isVideo ? (
+        <video
+          ref={videoElRef}
+          src={post.media_url}
+          loop
+          muted={muted}
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 h-full w-full object-cover"
+          draggable={false}
+        />
+      ) : (
+        <img
+          src={post.media_url}
+          alt={post.caption ?? ""}
+          className="absolute inset-0 h-full w-full object-cover"
+          draggable={false}
+        />
+      )}
       {/* gradiente para legibilidade */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70" />
 
