@@ -292,9 +292,15 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
           type="button"
           className="flex flex-col items-center gap-1"
           aria-label="Comentar"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            setCommentsOpen(true);
+          }}
         >
           <MessageCircle className="h-8 w-8 text-white drop-shadow-lg" strokeWidth={2} />
+          <span className="text-xs font-semibold tabular-nums text-white drop-shadow">
+            {commentsCount}
+          </span>
         </button>
 
         <button
