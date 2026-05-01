@@ -20,6 +20,7 @@ import {
   type FollowState,
 } from "@/lib/posts-api";
 import { useAuth } from "@/lib/auth-context";
+import { readableTextOn, withAlpha } from "@/lib/color";
 
 export const Route = createFileRoute("/_authenticated/u/$handle")({
   head: ({ params }) => ({
