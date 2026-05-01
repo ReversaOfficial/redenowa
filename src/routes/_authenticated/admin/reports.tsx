@@ -158,11 +158,22 @@ function ReportCard({ report }: { report: any }) {
         .eq("id", report.id);
       if (error) throw error;
 
-      // If valid report, flag the post
+      // If valid report, flag the post so it's hidden from feed
       if (status === "reviewed_valid" || status === "actioned") {
-        // Flag the post using service role via server function would be ideal,
-        // but for now we mark it — RLS allows admin update if we add a policy
-        // Actually posts table doesn't have UPDATE policy for admin, we'll handle via flagged
+        await supabase
+          .from("posts")
+          .update({
+            flagged: true,
+            flagged_reason: REASON_LABELS[report.reason] ?? report.reason,
+          })
+          .eq("id", report.post_id);
+      }
+      // If invalid, unflag if it was flagged
+      if (status === "reviewed_invalid") {
+        await supabase
+          .from("posts")
+          .update({ flagged: false, flagged_reason: null })
+          .eq("id", report.post_id);
       }
     },
     onSuccess: () => {
