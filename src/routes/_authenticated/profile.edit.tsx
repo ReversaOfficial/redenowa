@@ -52,6 +52,12 @@ const schema = z.object({
     .max(LOC_MAX, `Máx. ${LOC_MAX} caracteres`)
     .optional()
     .transform((v) => v ?? ""),
+  state: z
+    .string()
+    .trim()
+    .max(LOC_MAX, `Máx. ${LOC_MAX} caracteres`)
+    .optional()
+    .transform((v) => v ?? ""),
   country: z
     .string()
     .trim()
