@@ -1,13 +1,15 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { MobileShell } from "@/components/nowa/MobileShell";
 import { TopBar } from "@/components/nowa/TopBar";
 import { Avatar } from "@/components/nowa/PostCard";
+import { AvatarCameraDialog } from "@/components/nowa/AvatarCameraDialog";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadAvatarAndSave } from "@/lib/posts-api";
 
 export const Route = createFileRoute("/_authenticated/profile/edit")({
   head: () => ({
@@ -45,6 +47,29 @@ function EditProfilePage() {
     {}
   );
   const [saving, setSaving] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  async function onAvatarCaptured(blob: Blob) {
+    if (!user) return;
+    // preview otimista
+    const localUrl = URL.createObjectURL(blob);
+    setAvatarPreview(localUrl);
+    setUploadingAvatar(true);
+    try {
+      await uploadAvatarAndSave(user.id, blob);
+      await refreshProfile();
+      toast.success("Avatar atualizado");
+    } catch (e) {
+      console.error(e);
+      const msg = e instanceof Error ? e.message : "Falha ao salvar avatar";
+      toast.error(msg);
+      setAvatarPreview(null);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
 
   useEffect(() => {
     if (profile) {
@@ -105,17 +130,31 @@ function EditProfilePage() {
 
       <form onSubmit={onSubmit} className="px-5 py-6 space-y-6">
         <div className="flex items-center gap-4">
-          <Avatar
-            src={profile?.avatar_url ?? null}
-            name={profile?.display_name ?? "?"}
-            size={72}
-          />
+          <button
+            type="button"
+            onClick={() => setCameraOpen(true)}
+            className="nowa-tap relative shrink-0"
+            aria-label="Trocar avatar"
+          >
+            <Avatar
+              src={avatarPreview ?? profile?.avatar_url ?? null}
+              name={profile?.display_name ?? "?"}
+              size={80}
+            />
+            <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-background">
+              {uploadingAvatar ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" strokeWidth={2.5} />
+              )}
+            </span>
+          </button>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">
               @{profile?.handle ?? "..."}
             </p>
             <p className="text-xs text-muted-foreground">
-              Seu @ não pode ser alterado.
+              Toque na foto para capturar agora.
             </p>
           </div>
         </div>
@@ -182,6 +221,12 @@ function EditProfilePage() {
           {saving ? "Salvando..." : "Salvar"}
         </button>
       </form>
+
+      <AvatarCameraDialog
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={onAvatarCaptured}
+      />
     </MobileShell>
   );
 }

@@ -309,6 +309,29 @@ export async function createPost(args: {
   if (error) throw error;
 }
 
+export async function uploadAvatarAndSave(
+  userId: string,
+  blob: Blob
+): Promise<string> {
+  const filename = `avatars/${userId}/${Date.now()}.jpg`;
+  const { error: upErr } = await supabase.storage
+    .from("nowa-media")
+    .upload(filename, blob, {
+      contentType: "image/jpeg",
+      cacheControl: "31536000",
+      upsert: false,
+    });
+  if (upErr) throw upErr;
+  const { data } = supabase.storage.from("nowa-media").getPublicUrl(filename);
+  const url = data.publicUrl;
+  const { error: updErr } = await supabase
+    .from("profiles")
+    .update({ avatar_url: url })
+    .eq("id", userId);
+  if (updErr) throw updErr;
+  return url;
+}
+
 // Tiny tick store so countdowns refresh every minute
 let tickListeners = new Set<() => void>();
 let tickValue = 0;
