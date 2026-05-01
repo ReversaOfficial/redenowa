@@ -172,6 +172,9 @@ export const PostCard = memo(function PostCard({ post }: { post: Post }) {
           {post.caption}
         </p>
       )}
+      <p className="px-4 pt-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/50">
+        Compartilhe seus momentos
+      </p>
     </article>
   );
 }, postCardAreEqual);
