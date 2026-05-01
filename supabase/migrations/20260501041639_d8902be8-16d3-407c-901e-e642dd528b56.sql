@@ -1,0 +1,4 @@
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS theme_bg TEXT,
+  ADD COLUMN IF NOT EXISTS theme_ring TEXT,
+  ADD COLUMN IF NOT EXISTS onboarded_at TIMESTAMPTZ;
