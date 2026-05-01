@@ -35,6 +35,7 @@ const DEFAULT_RING = "#FF2E63";
 const schema = z.object({
   display_name: z.string().trim().min(2, "Informe seu nome").max(40),
   city: z.string().trim().min(2, "Informe sua cidade").max(60),
+  state: z.string().trim().min(2, "Informe seu estado").max(60),
   country: z.string().trim().min(2, "Informe seu país").max(60),
 });
 
@@ -44,6 +45,7 @@ function OnboardingPage() {
 
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
+  const [state, setState] = useState("");
   const [country, setCountry] = useState("");
   const [bg, setBg] = useState(DEFAULT_BG);
   const [ring, setRing] = useState(DEFAULT_RING);
@@ -54,6 +56,7 @@ function OnboardingPage() {
     if (!profile) return;
     setName(profile.display_name ?? "");
     setCity(profile.city ?? "");
+    setState(profile.state ?? "");
     setCountry(profile.country ?? "");
     if (profile.theme_bg) setBg(profile.theme_bg);
     if (profile.theme_ring) setRing(profile.theme_ring);
@@ -78,6 +81,7 @@ function OnboardingPage() {
     const parsed = schema.safeParse({
       display_name: name,
       city,
+      state,
       country,
     });
     if (!parsed.success) {
@@ -90,6 +94,7 @@ function OnboardingPage() {
       .update({
         display_name: parsed.data.display_name,
         city: parsed.data.city,
+        state: parsed.data.state,
         country: parsed.data.country,
         theme_bg: bg,
         theme_ring: ring,
@@ -159,8 +164,8 @@ function OnboardingPage() {
               className="mt-2 text-xs"
               style={{ color: previewMutedColor }}
             >
-              {[city, country].filter(Boolean).join(" · ") ||
-                "Cidade · País"}
+              {[city, state, country].filter(Boolean).join(" · ") ||
+                "Cidade · Estado · País"}
             </p>
           </div>
         </motion.section>
@@ -183,13 +188,20 @@ function OnboardingPage() {
               maxLength={60}
             />
             <Field
-              label="País"
-              value={country}
-              onChange={setCountry}
-              placeholder="Brasil"
+              label="Estado"
+              value={state}
+              onChange={setState}
+              placeholder="Rio Grande do Sul"
               maxLength={60}
             />
           </div>
+          <Field
+            label="País"
+            value={country}
+            onChange={setCountry}
+            placeholder="Brasil"
+            maxLength={60}
+          />
 
           <ColorPicker
             label="Cor de fundo do perfil"

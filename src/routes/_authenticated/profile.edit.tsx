@@ -52,6 +52,12 @@ const schema = z.object({
     .max(LOC_MAX, `Máx. ${LOC_MAX} caracteres`)
     .optional()
     .transform((v) => v ?? ""),
+  state: z
+    .string()
+    .trim()
+    .max(LOC_MAX, `Máx. ${LOC_MAX} caracteres`)
+    .optional()
+    .transform((v) => v ?? ""),
   country: z
     .string()
     .trim()
@@ -66,6 +72,7 @@ function EditProfilePage() {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [city, setCity] = useState("");
+  const [state, setState] = useState("");
   const [country, setCountry] = useState("");
   const [bg, setBg] = useState(DEFAULT_BG);
   const [ring, setRing] = useState(DEFAULT_RING);
@@ -111,6 +118,7 @@ function EditProfilePage() {
       setDisplayName(profile.display_name ?? "");
       setBio(profile.bio ?? "");
       setCity(profile.city ?? "");
+      setState(profile.state ?? "");
       setCountry(profile.country ?? "");
       if (profile.theme_bg) setBg(profile.theme_bg);
       if (profile.theme_ring) setRing(profile.theme_ring);
@@ -130,6 +138,7 @@ function EditProfilePage() {
       display_name: displayName,
       bio,
       city,
+      state,
       country,
     });
     if (!parsed.success) {
@@ -149,6 +158,7 @@ function EditProfilePage() {
         display_name: parsed.data.display_name,
         bio: parsed.data.bio || null,
         city: parsed.data.city || null,
+        state: parsed.data.state || null,
         country: parsed.data.country || null,
         theme_bg: bg,
         theme_ring: ring,
@@ -238,7 +248,7 @@ function EditProfilePage() {
           )}
         </div>
 
-        {/* Cidade / País */}
+        {/* Cidade / Estado */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <label
@@ -260,22 +270,42 @@ function EditProfilePage() {
           </div>
           <div className="space-y-2">
             <label
-              htmlFor="country"
+              htmlFor="state"
               className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
             >
-              País
+              Estado
             </label>
             <input
-              id="country"
+              id="state"
               type="text"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
+              value={state}
+              onChange={(e) => setState(e.target.value)}
               maxLength={LOC_MAX}
-              autoComplete="country-name"
+              autoComplete="address-level1"
               className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:border-primary"
-              placeholder="Brasil"
+              placeholder="Rio Grande do Sul"
             />
           </div>
+        </div>
+
+        {/* País */}
+        <div className="space-y-2">
+          <label
+            htmlFor="country"
+            className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+          >
+            País
+          </label>
+          <input
+            id="country"
+            type="text"
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            maxLength={LOC_MAX}
+            autoComplete="country-name"
+            className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:border-primary"
+            placeholder="Brasil"
+          />
         </div>
 
         {/* Bio */}
@@ -362,12 +392,12 @@ function EditProfilePage() {
               >
                 @{profile?.handle ?? "voce"}
               </p>
-              {(city || country) && (
+              {(city || state || country) && (
                 <p
                   className="mt-1 text-xs"
                   style={{ color: previewMutedColor }}
                 >
-                  {[city, country].filter(Boolean).join(" · ")}
+                  {[city, state, country].filter(Boolean).join(" · ")}
                 </p>
               )}
             </div>

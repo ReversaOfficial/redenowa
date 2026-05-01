@@ -44,6 +44,11 @@ const signupSchema = z.object({
     .trim()
     .min(2, "Informe sua cidade")
     .max(60, "Cidade muito longa"),
+  state: z
+    .string()
+    .trim()
+    .min(2, "Informe seu estado")
+    .max(60, "Estado muito longo"),
   country: z
     .string()
     .trim()
@@ -74,6 +79,7 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [state, setState] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -92,6 +98,7 @@ function AuthPage() {
         const parsed = signupSchema.safeParse({
           name,
           city,
+          state,
           country,
           dateOfBirth,
           email,
@@ -110,6 +117,7 @@ function AuthPage() {
             data: {
               display_name: parsed.data.name,
               city: parsed.data.city,
+              state: parsed.data.state,
               country: parsed.data.country,
               date_of_birth: parsed.data.dateOfBirth,
             },
@@ -225,15 +233,24 @@ function AuthPage() {
                   required
                 />
                 <Field
-                  label="País"
+                  label="Estado"
                   type="text"
-                  value={country}
-                  onChange={setCountry}
-                  placeholder="Brasil"
-                  autoComplete="country-name"
+                  value={state}
+                  onChange={setState}
+                  placeholder="Rio Grande do Sul"
+                  autoComplete="address-level1"
                   required
                 />
               </div>
+              <Field
+                label="País"
+                type="text"
+                value={country}
+                onChange={setCountry}
+                placeholder="Brasil"
+                autoComplete="country-name"
+                required
+              />
               <Field
                 label="Data de nascimento"
                 type="date"
