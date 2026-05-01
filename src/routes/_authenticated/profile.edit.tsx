@@ -72,6 +72,7 @@ function EditProfilePage() {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [city, setCity] = useState("");
+  const [state, setState] = useState("");
   const [country, setCountry] = useState("");
   const [bg, setBg] = useState(DEFAULT_BG);
   const [ring, setRing] = useState(DEFAULT_RING);
