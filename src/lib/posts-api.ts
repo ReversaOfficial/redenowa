@@ -73,6 +73,8 @@ function shape(rows: RawPost[], myId: string | null): Post[] {
       media_type: (r.media_type as "image" | "video") ?? "image",
       caption: r.caption,
       created_at: r.created_at,
+      flagged: r.flagged ?? false,
+      flagged_reason: r.flagged_reason ?? null,
       author: r.profiles!,
       likes_count: r.likes.length,
       liked_by_me: myId ? r.likes.some((l) => l.user_id === myId) : false,
