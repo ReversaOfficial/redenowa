@@ -343,6 +343,24 @@ function ReelSlide({ post, active }: { post: Post; active: boolean }) {
         >
           <Share2 className="h-8 w-8 text-white drop-shadow-lg" strokeWidth={2} />
         </button>
+
+        {isVideo && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMuted((m) => !m);
+            }}
+            className="flex flex-col items-center gap-1"
+            aria-label={muted ? "Ativar som" : "Silenciar"}
+          >
+            {muted ? (
+              <VolumeX className="h-7 w-7 text-white drop-shadow-lg" strokeWidth={2} />
+            ) : (
+              <Volume2 className="h-7 w-7 text-white drop-shadow-lg" strokeWidth={2} />
+            )}
+          </button>
+        )
       </div>
 
       {/* rodapé com autor + caption + seguir */}
